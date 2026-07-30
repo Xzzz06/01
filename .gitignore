@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# 项目魔法
+PROMPT/
+
+# 编译目录
+.claude/
