@@ -1,6 +1,6 @@
 {
-  "name": "One Phone",
-  "short_name": "One Phone",
+  "name": "Qu Phone",
+  "short_name": "Qu Phone",
   "start_url": "./",
   "scope": ".",
   "display": "standalone",

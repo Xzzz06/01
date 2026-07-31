@@ -12,11 +12,7 @@
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 
-  /* 灰阶壁纸：两个柔和光斑 + 一层斜向渐变，给玻璃提供明暗层次 */
-  background:
-    radial-gradient(circle at 22% 18%, #ffffff 0%, rgba(255, 255, 255, 0) 55%),
-    radial-gradient(circle at 78% 84%, #e2e2e2 0%, rgba(226, 226, 226, 0) 60%),
-    linear-gradient(160deg, #f6f6f6 0%, #ededed 100%);
+  background: #f6f6f6;
 }
 
 /* 顶部状态栏安全区占位：纯 spacer，无背景，允许吃在 height 上 */

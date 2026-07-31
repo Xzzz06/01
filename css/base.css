@@ -1,7 +1,7 @@
 /* ===== 开屏标题字体 ===== */
 @font-face {
   font-family: 'Apple System';
-  src: url('../fonts/apple-system.woff2') format('woff2');
+  src: url('../fonts/apple-system.woff2?v=1.2.0') format('woff2');
   font-weight: 700;            /* 静态字体 */
   font-style: normal;
   font-display: swap;          /* 字体无法加载先用兜底字体渲染，避免留白 */
