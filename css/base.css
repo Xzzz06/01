@@ -128,5 +128,4 @@ re-icon {
   .dock-item:hover .dock-icon-bg {
     background: rgba(255, 255, 255, 0.18);   /* 静止态是 0.1 */
   }
-  .page-back:hover { opacity: 0.6; }
 }

@@ -34,9 +34,9 @@
   <!-- 图标库：图标数据内联；版本号锁死 -->
   <script src="https://unpkg.com/reicon@1/cdn/reicon.js"></script>
 
-  <link rel="stylesheet" href="css/base.css?v=1.0.2">
+  <link rel="stylesheet" href="css/base.css?v=1.0.3">
   <link rel="stylesheet" href="css/boot.css?v=1.1.0">
-  <link rel="stylesheet" href="css/home.css?v=1.0.0">
+  <link rel="stylesheet" href="css/home.css?v=1.1.0">
 </head>
 <body>
 
@@ -58,6 +58,8 @@
     <div id="app">
       <!-- 主屏幕骨架必须静态写在此处，renderHome() 只填内容不建容器 -->
       <div id="home-page">
+        <!-- 功能开发中提示横幅：绝对定位悬浮层，不参与主屏幕布局计算 -->
+        <div class="dev-banner" id="dev-banner" role="status" aria-live="polite"></div>
         <div class="status-bar"></div>
         <div class="desktop-viewport">
           <div class="desktop-page" id="desktop-page"></div>
@@ -70,7 +72,7 @@
 
   </div>
 
-  <script src="js/home.js?v=1.0.1"></script>
+  <script src="js/home.js?v=1.1.0"></script>
   <script src="js/boot.js?v=1.1.1"></script>
 
   <script>

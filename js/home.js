@@ -49,32 +49,39 @@ function renderHome() {
   })
 }
 
-// ===== 应用占位页 =====
+// ===== 功能开发中提示横幅 =====
+var BANNER_DURATION = 2000
+var bannerTimer = null            // 全局唯一计时器，连点时只会有一个在跑
+
+function showDevBanner(appName) {
+  var banner = document.getElementById('dev-banner')
+  // 缺少元素报错 —— 静默 return 会变成"点了图标什么都不发生且无从排查"
+  if (!banner) {
+    console.error('showDevBanner: 缺少 #dev-banner，检查 index.html 的 #home-page 骨架')
+    return
+  }
+
+  banner.textContent = appName + '功能开发中'
+
+  // 复用同一个横幅：先清掉上一次的隐藏计时器，时间从本次点击重新起算
+  if (bannerTimer !== null) clearTimeout(bannerTimer)
+  banner.classList.add('show')
+
+  // 隐藏只认计时器，不依赖 transitionend / animationend —— 动画被跳过时那些事件不一定触发
+  bannerTimer = setTimeout(function() {
+    banner.classList.remove('show')
+    bannerTimer = null
+  }, BANNER_DURATION)
+}
+
+// ===== 打开应用 =====
 function openApp(appId) {
   var all = APPS.concat(DOCK_APPS)
   var app = null
   for (var i = 0; i < all.length; i++) {
     if (all[i].id === appId) { app = all[i]; break }
   }
-  if (!app) return
+  if (!app) return                // 找不到就静默忽略，不能显示错误的名称
 
-  var pageEl = document.createElement('div')
-  pageEl.className = 'full-page'
-  pageEl.innerHTML =
-    '<header class="page-header">' +
-      '<button class="page-back" type="button"><re-icon icon="arrow-left" size="20"></re-icon></button>' +
-      '<div class="page-title">' + escapeHtml(app.name) + '</div>' +
-      '<div class="page-header-right"></div>' +
-    '</header>' +
-    '<div class="page-body scroll-area">' +
-      '<div class="page-placeholder">' + escapeHtml(app.name) + ' —— 功能开发中</div>' +
-    '</div>'
-
-  document.getElementById('app').appendChild(pageEl)
-  requestAnimationFrame(function() { pageEl.classList.add('show') })
-
-  pageEl.querySelector('.page-back').addEventListener('click', function() {
-    pageEl.classList.remove('show')
-    setTimeout(function() { pageEl.remove() }, 300)
-  })
+  showDevBanner(app.name)
 }
