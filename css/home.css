@@ -1,0 +1,275 @@
+/* ===== 桌面容器与壁纸 ===== */
+#home-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+
+  /* 灰阶壁纸：两个柔和光斑 + 一层斜向渐变，给玻璃提供明暗层次 */
+  background:
+    radial-gradient(circle at 22% 18%, #ffffff 0%, rgba(255, 255, 255, 0) 55%),
+    radial-gradient(circle at 78% 84%, #e2e2e2 0%, rgba(226, 226, 226, 0) 60%),
+    linear-gradient(160deg, #f6f6f6 0%, #ededed 100%);
+}
+
+/* 顶部状态栏安全区占位：纯 spacer，无背景，允许吃在 height 上 */
+.status-bar {
+  height: var(--sat);
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+.desktop-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ===== 图标网格 ===== */
+.desktop-page {
+  width: 100%;
+  height: 100%;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--desktop-grid-rows), minmax(0, 1fr));
+  gap: 20px 12px;                 /* 行距 20，列距 12 */
+  align-content: stretch;
+}
+
+/* 单个图标「图标底 + 文字标签」 */
+.app-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  align-self: start;
+  transition: transform 0.15s var(--ease), opacity 0.15s;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.app-icon:active {
+  transform: scale(0.85);
+  opacity: 0.75;
+}
+
+.icon-label {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--c-text);
+  text-align: center;
+  white-space: nowrap;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== Dock 栏 ===== */
+.dock-area {
+  flex-shrink: 0;
+  padding: 6px 24px;
+  padding-bottom: calc(8px + var(--sab));
+}
+
+.dock-glass {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1 1 0;
+  max-width: 78px;
+  min-width: 0;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.dock-item:active {
+  transform: scale(0.88);
+}
+.dock-item span {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--c-text);
+  opacity: 0.7;
+}
+
+/* ===== 玻璃效果 ===== */
+.icon-bg {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  border: none;                  /* 边框由 ::before / ::after 画 */
+  box-shadow: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.dock-icon-bg {
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.035);
+  position: relative;
+  overflow: hidden;
+}
+
+.dock-glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: none;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+/*
+ * 局部玻璃边缘：完整 0.8px 圆角描边由椭圆遮罩裁成两个角落。
+ * 椭圆横纵半径均按元素自身尺寸计算，因此方形图标和长条 Dock 均可自适应。
+ * 分别沿每条边在约 25% 后渐隐，并在约 80% 处完全消失。
+ */
+.icon-bg,
+.dock-icon-bg,
+.dock-glass {
+  --glass-edge-highlight: rgba(255, 255, 255, 0.4);
+  --glass-edge-soft: rgba(255, 255, 255, 0.14);
+}
+
+/* 两个伪元素的公共部分 */
+.icon-bg::before,
+.dock-icon-bg::before,
+.dock-glass::before,
+.icon-bg::after,
+.dock-icon-bg::after,
+.dock-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 0.8px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ::before —— 左上角高光弧 */
+.icon-bg::before,
+.dock-icon-bg::before,
+.dock-glass::before {
+  border-color: var(--glass-edge-highlight);
+  -webkit-mask-image: radial-gradient(
+    ellipse 100% 100% at top left,
+    #000 0%,
+    #000 25%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    ellipse 100% 100% at top left,
+    #000 0%,
+    #000 25%,
+    transparent 80%
+  );
+}
+
+/* ::after —— 右下角弱光弧 */
+.icon-bg::after,
+.dock-icon-bg::after,
+.dock-glass::after {
+  border-color: var(--glass-edge-soft);
+  -webkit-mask-image: radial-gradient(
+    ellipse 100% 100% at bottom right,
+    #000 0%,
+    #000 25%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    ellipse 100% 100% at bottom right,
+    #000 0%,
+    #000 25%,
+    transparent 80%
+  );
+}
+
+/* 图标字形颜色：reicon 内部用 currentColor */
+.icon-bg,
+.dock-icon-bg {
+  color: var(--icon-color, var(--c-accent-dark));
+}
+
+/* ===== 应用占位页 ===== */
+.full-page {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
+  transform: translateX(100%);
+  transition: transform 0.3s var(--ease);
+}
+.full-page.show { transform: translateX(0); }
+
+.page-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: calc(12px + var(--sat));   /* 相加不是取大 */
+  padding-bottom: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-bottom: 1px solid var(--c-border);
+}
+.page-back {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: none; cursor: pointer;
+  color: var(--c-text);
+}
+.page-header-right { width: 32px; }   /* 占位，让标题真正居中 */
+.page-title { font-size: 16px; font-weight: 500; color: var(--c-text); }
+
+.page-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--sab);
+}
+.page-placeholder {
+  padding: 80px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--c-hint);
+}

@@ -1,0 +1,8 @@
+/index.html
+  Cache-Control: no-store
+
+/manifest.json
+  Cache-Control: no-store
+
+/service.js
+  Cache-Control: no-store

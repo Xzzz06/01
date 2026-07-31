@@ -1,0 +1,130 @@
+/* ===== 开屏标题字体 ===== */
+@font-face {
+  font-family: 'Apple System';
+  src: url('../fonts/apple-system.woff2') format('woff2');
+  font-weight: 700;            /* 静态字体 */
+  font-style: normal;
+  font-display: swap;          /* 字体无法加载先用兜底字体渲染，避免留白 */
+}
+
+:root {
+  /* ===== 颜色 ===== */
+  --c-bg: #ffffff;          /* 纯白，用于卡片/页面底 */
+  --c-surface: #f6f6f6;     /* 主背景灰，桌面壁纸基色 */
+  --c-surface-2: #ededed;   /* 次级灰，渐变暗端 */
+  --c-desk: #d9d9d9;        /* 预留颜色 */
+  --c-border: rgba(0, 0, 0, 0.05);
+  --c-border-m: rgba(0, 0, 0, 0.09);
+
+  --c-text: #3a3a3a;        /* 主文字：深灰，不要用纯黑 */
+  --c-sub: #939393;         /* 次要文字 */
+  --c-hint: #b8b8b8;        /* 最弱提示文字 */
+
+  --c-accent: #8a8a8a;      /* 强调灰 */
+  --c-accent-dark: #787878; /* 图标字形颜色 */
+
+  /* ===== 阴影 ===== */
+  --shadow-sm: 0 1px 6px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+  /* ===== 圆角 ===== */
+  --r-sm: 8px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 100px;
+
+  /* ===== 动效（全站统一，不要各写各的）===== */
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --dur: 0.2s;
+
+  /* ===== 安全区 ===== */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);    /* 竖屏恒为 0，留着以后加横屏/抽屉用 */
+  --sar: env(safe-area-inset-right, 0px);
+
+  /* ===== 桌面网格行数 ===== */
+  --desktop-grid-rows: 3;
+
+  /* ===== 字体 ===== */
+  --font-ui: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-display: 'Apple System', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --font-size-body: 14px;
+}
+
+/* ===== 全局重置 ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;   /* 去掉点击时的灰色高亮块 */
+  -webkit-touch-callout: none;                /* 长按不弹系统菜单 */
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;                  /* 禁止橡皮筋回弹 / 下拉刷新 */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
+  color: var(--c-text);
+  background: var(--c-surface);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+input, textarea { user-select: text; }
+/* 输入框字号必须 >= 16px，否则 iOS 一聚焦就放大整页 */
+input, textarea, select { font-size: 16px; outline: none; }
+button { border: none; background: none; cursor: pointer; font-family: inherit; }
+img { display: block; max-width: 100%; }
+
+/* 设备外框：始终等于整个视口，桌面上同样铺满窗口 */
+.device-frame {
+  position: relative;              /* #boot / #app 的定位基准 */
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  width: 100%;
+  height: 100%;                    /* 跟随 .device-frame 的实际高度 */
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 只负责滚动行为，不带 flex: 1 —— 需要撑开的容器自己写 */
+.scroll-area {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* reicon 标签 */
+re-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+/* ===== 桌面鼠标悬停态：只允许改玻璃背景的透明度 ===== */
+@media (hover: hover) {
+  .app-icon:hover .icon-bg,
+  .dock-item:hover .dock-icon-bg {
+    background: rgba(255, 255, 255, 0.18);   /* 静止态是 0.1 */
+  }
+  .page-back:hover { opacity: 0.6; }
+}

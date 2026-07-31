@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- 视口：重要参数，不可删除任何内容 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+
+  <!-- iOS 全屏模式 -->
+  <!-- 允许独立窗口运行「去除 Safari 地址栏和底部工具栏」 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <!-- 状态栏透明，页面内容延伸「必须配合安全区」 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- 桌面图标下方显示名字 -->
+  <meta name="apple-mobile-web-app-title" content="One Phone">
+
+  <!-- Android / 标准写法 -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <!-- Android 状态栏底色，必须与 manifest 的 theme_color 一致 -->
+  <meta name="theme-color" content="#f6f6f6">
+
+  <!-- iOS 桌面图标 -->
+  <link rel="apple-touch-icon" href="img/icon_192.png">
+  <!-- 浏览器标签页图标 -->
+  <link rel="icon" type="image/png" href="img/icon_192.png">
+  <!-- Android 识别安装文件 -->
+  <link rel="manifest" href="manifest.json">
+
+  <title>One Phone</title>
+
+  <!-- 开屏标题字体：字体已子集化，保留 Preload;crossorigin 必须标注 -->
+  <link rel="preload" href="fonts/apple-system.woff2" as="font" type="font/woff2" crossorigin>
+
+  <!-- 图标库：图标数据内联；版本号锁死 -->
+  <script src="https://unpkg.com/reicon@1/cdn/reicon.js"></script>
+
+  <link rel="stylesheet" href="css/base.css?v=1.0.1">
+  <link rel="stylesheet" href="css/boot.css?v=1.0.0">
+  <link rel="stylesheet" href="css/home.css?v=1.0.0">
+</head>
+<body>
+
+  <!-- .device-frame 包住开屏页&主屏幕；始终铺满视口。 -->
+  <div class="device-frame">
+
+    <div id="boot">
+      <div class="boot-center">
+        <h1 class="boot-title">
+          <span id="boot-typed"></span><span class="boot-caret" id="boot-caret"></span>
+        </h1>
+      </div>
+      <div class="boot-tap" id="boot-tap">
+        <div class="tap-line"></div>
+        <span>Tap to Start</span>
+        <div class="tap-line"></div>
+      </div>
+    </div>
+
+    <div id="app">
+      <!-- 主屏幕骨架必须静态写在此处，renderHome() 只填内容不建容器 -->
+      <div id="home-page">
+        <div class="status-bar"></div>
+        <div class="desktop-viewport">
+          <div class="desktop-page" id="desktop-page"></div>
+        </div>
+        <div class="dock-area">
+          <div class="dock-glass" id="dock-glass"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/home.js?v=1.0.1"></script>
+  <script src="js/boot.js?v=1.0.0"></script>
+
+  <script>
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('service.js').catch(function(err) {
+        console.warn('Service Worker 注册失败:', err)   // 失败不能影响应用正常使用
+      })
+    })
+  }
+  </script>
+
+</body>
+</html>
