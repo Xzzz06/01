@@ -35,7 +35,7 @@
   <script src="https://unpkg.com/reicon@1/cdn/reicon.js"></script>
 
   <link rel="stylesheet" href="css/base.css?v=1.0.2">
-  <link rel="stylesheet" href="css/boot.css?v=1.0.0">
+  <link rel="stylesheet" href="css/boot.css?v=1.1.0">
   <link rel="stylesheet" href="css/home.css?v=1.0.0">
 </head>
 <body>
@@ -45,14 +45,13 @@
 
     <div id="boot">
       <div class="boot-center">
-        <h1 class="boot-title">
-          <span id="boot-typed"></span><span class="boot-caret" id="boot-caret"></span>
-        </h1>
-      </div>
-      <div class="boot-tap" id="boot-tap">
-        <div class="tap-line"></div>
-        <span>Tap to Start</span>
-        <div class="tap-line"></div>
+        <!-- 标题与进度线共用一个容器，中心完全重合；容器宽度由 boot.js 锁死为标题实际宽度 -->
+        <div class="boot-logo" id="boot-logo">
+          <h1 class="boot-title" id="boot-title">One Phone</h1>
+          <div class="boot-progress" aria-hidden="true">
+            <div class="boot-progress-fill" id="boot-progress-fill"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -72,7 +71,7 @@
   </div>
 
   <script src="js/home.js?v=1.0.1"></script>
-  <script src="js/boot.js?v=1.0.0"></script>
+  <script src="js/boot.js?v=1.1.1"></script>
 
   <script>
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {

@@ -8,8 +8,7 @@
   justify-content: center;
   background: var(--c-surface);      /* 必须有背景色，否则透出后面的主屏幕 */
   overflow: hidden;
-  cursor: pointer;
-  transition: opacity 0.6s var(--ease);
+  transition: opacity 0.5s var(--ease);
 }
 #boot.hidden {
   opacity: 0;
@@ -36,6 +35,15 @@
   justify-content: center;
 }
 
+/* 标题与进度线的共同容器：宽度由 boot.js 写成标题实际渲染宽度并锁死，
+   这样标题收字距时线宽不会跟着抖 */
+.boot-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .boot-title {
   margin: 0;
   font-family: var(--font-display);
@@ -49,59 +57,87 @@
   min-height: 52px;
   line-height: 52px;
   white-space: nowrap;
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
 
-/* 光标：一根竖条，跟着文字末尾走 */
-.boot-caret {
-  display: inline-block;
-  width: 3px;
-  height: 0.92em;
-  margin-left: 4px;
-  border-radius: 1px;
-  background: var(--c-accent);
-  vertical-align: middle;
-  animation: caretBlink 1s steps(1, end) infinite;
-}
-/* 打完字之后加这个类，光标停止闪烁并淡出 */
-.boot-caret.done {
-  animation: none;
+/* 收束：绕中心压扁 + 收字距 + 极轻模糊，最后透明度归零交给线层 */
+#boot.is-morphing .boot-title {
+  transform: scaleY(0.06);
+  letter-spacing: -0.05em;
+  filter: blur(1.5px);
   opacity: 0;
-  transition: opacity 0.4s var(--ease);
+  transition:
+    transform 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    letter-spacing 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    filter 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 200ms cubic-bezier(0.4, 0, 0.2, 1) 140ms;
 }
 
-@keyframes caretBlink {
-  0%, 49%   { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-
-/* Tap to Start */
-.boot-tap {
+/* 进度线轨道：与标题同中心，初始不可见并收在中间 */
+.boot-progress {
   position: absolute;
-  bottom: calc(56px + var(--sab));
-  left: 0; right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  z-index: 1;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  background: rgba(58, 58, 58, 0.12);
+  overflow: hidden;
   opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+  transform: scaleX(0.12);
+  transform-origin: center center;
   pointer-events: none;
 }
-.boot-tap.ready {
+
+/* 在标题压缩的最后阶段展开，接管视觉 */
+#boot.is-morphing .boot-progress {
   opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
+  transform: scaleX(1);
+  transition:
+    opacity 140ms var(--ease) 160ms,
+    transform 200ms cubic-bezier(0.4, 0, 0.2, 1) 140ms;
 }
-.boot-tap span {
-  font-size: 11px;
-  font-weight: 300;
-  letter-spacing: 0.24em;
-  color: var(--c-hint);
+
+/* 填充层：只动 scaleX，原点在左边，方向永远是左 → 右 */
+.boot-progress-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--c-text);
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
 }
-.tap-line {
-  width: 24px;
-  height: 1px;
-  background: var(--c-surface-2);
+#boot.is-loading .boot-progress-fill {
+  transform: scaleX(1);
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* 完成后锁住满格，避免淡出期间回弹 */
+#boot.is-complete .boot-progress-fill {
+  transform: scaleX(1);
+}
+
+/* ===== 减弱动态效果：跳过压扁/模糊，直接显示满格细线再快速淡出 ===== */
+@media (prefers-reduced-motion: reduce) {
+  #boot {
+    transition: opacity 0.2s var(--ease);
+  }
+  #boot.is-morphing .boot-title {
+    transform: none;
+    letter-spacing: 0.02em;
+    filter: none;
+    opacity: 0;
+    transition: none;
+  }
+  #boot.is-morphing .boot-progress {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  #boot.is-loading .boot-progress-fill {
+    transform: scaleX(1);
+    transition: none;
+  }
 }
