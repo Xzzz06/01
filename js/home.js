@@ -87,5 +87,11 @@ function openApp(appId) {
   }
   if (!app) return                // 找不到就静默忽略，不能显示错误的名称
 
+  // 设置是目前唯一有真实页面的应用，其余仍走「功能开发中」横幅
+  if (appId === 'settings') {
+    openSettings()                // settings.js 提供
+    return
+  }
+
   showDevBanner(app.name)
 }

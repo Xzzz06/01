@@ -29,14 +29,15 @@
   <title>Qu Phone</title>
 
   <!-- 开屏标题字体：字体已子集化 ; crossorigin 必须标注 -->
-  <link rel="preload" href="fonts/apple-system.woff2?v=1.2.0" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/%E6%A0%87%E9%A2%98.woff2?v=1.3.1" as="font" type="font/woff2" crossorigin>
 
   <!-- 图标库：图标数据内联；版本号锁死 -->
   <script src="https://unpkg.com/reicon@1/cdn/reicon.js"></script>
 
-  <link rel="stylesheet" href="css/base.css?v=1.0.8">
+  <link rel="stylesheet" href="css/base.css?v=1.1.1">
   <link rel="stylesheet" href="css/boot.css?v=1.1.0">
   <link rel="stylesheet" href="css/home.css?v=1.1.2">
+  <link rel="stylesheet" href="css/settings.css?v=1.0.2">
 </head>
 <body>
 
@@ -72,7 +73,9 @@
 
   </div>
 
-  <script src="js/home.js?v=1.1.0"></script>
+  <script src="js/home.js?v=1.1.1"></script>
+  <!-- 设置页：整页由 JS 在首次点击「设置」时创建，此处没有对应标记 -->
+  <script src="js/settings.js?v=1.0.1"></script>
   <script src="js/boot.js?v=1.1.1"></script>
 
   <script>

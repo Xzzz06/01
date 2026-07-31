@@ -1,0 +1,225 @@
+/* ===== 设置页面 ===== */
+/* 设计与理由见 PROMPT/05_设置页.md
+ * 本文件禁止出现 backdrop-filter 和 will-change，滑入只动 transform。 */
+.settings-page {
+  /* 分组视觉参数：只有这一处定义 */
+  --row-radius-out: 20px;      /* 整组最上 / 最下的外角，大圆角 */
+  --row-radius-in: 5px;        /* 组内相邻的角，很小 */
+  --row-gap: 2px;              /* 行与行之间的透明缝 */
+  --row-h: 44px;
+  --row-bg: var(--c-surface-2);
+  --row-bg-active: #e4e4e4;
+
+  /* 字号 / 字重不在这里定义：统一走 base.css :root 的 --title-* / --label-* / --row-* */
+
+  position: absolute;          /* #app 是 position: relative，见 base.css */
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);   /* 必须不透明，完整盖住主屏 */
+
+  /* 关闭态：移出屏幕；visibility 延后到滑出结束再切，避免残留内容被点到 */
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s linear 0.3s;
+}
+
+.settings-page.show {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s;
+}
+
+/* .scroll-area 只负责滚动行为、不带 flex: 1，需要撑开的容器自己写（base.css） */
+.settings-scroll {
+  flex: 1;
+  min-height: 0;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(12px + var(--sat)) 20px calc(24px + var(--sab));
+}
+
+/* ===== 顶部：返回 / 小标签 / 大标题 ===== */
+.settings-back {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-text);              /* reicon 内部用 currentColor */
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.settings-back:active {
+  transform: scale(0.88);
+  background: var(--row-bg-active);
+}
+
+.settings-eyebrow {
+  margin-top: 26px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+.settings-title {
+  margin: 6px 0 0;
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);              /* 主文字用深灰，不用纯黑（base.css 的约定） */
+}
+
+/* ===== 搜索框 ===== */
+.settings-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  margin-top: 20px;
+  padding: 0 18px;
+  border-radius: 24px;
+  background: var(--c-surface-2);
+  color: var(--c-hint);              /* 放大镜图标颜色 */
+}
+
+.settings-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  color: var(--c-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.settings-search input::placeholder {
+  color: var(--c-hint);
+}
+/* 去掉 Safari 给 type="search" 附加的原生装饰与清除按钮 */
+.settings-search input::-webkit-search-decoration,
+.settings-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* ===== 分组 ===== */
+.settings-group-label {
+  margin: 26px 0 10px;
+  padding-left: 4px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+/* 一整块卡片：行间只留一条极窄透明缝，缝两侧小圆角，整组外角才是大圆角 */
+.settings-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--row-gap);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: var(--row-h);
+  padding: 0 18px;
+  text-align: left;
+  background: var(--row-bg);         /* 所有行统一一个底色，不做深浅交错 */
+  border-radius: var(--row-radius-in);
+  transition: background var(--dur) var(--ease);
+}
+.settings-row:active {
+  background: var(--row-bg-active);
+}
+
+/* 外角类由 JS 在每次筛选后打到「可见的」首 / 末行上。
+ * 不要换成 :first-child / :last-child —— 它匹配 DOM 而不是可见行，首行被筛掉后整组顶部会塌 */
+.settings-row.is-first {
+  border-top-left-radius: var(--row-radius-out);
+  border-top-right-radius: var(--row-radius-out);
+}
+.settings-row.is-last {
+  border-bottom-left-radius: var(--row-radius-out);
+  border-bottom-right-radius: var(--row-radius-out);
+}
+
+.settings-row.is-hidden,
+.settings-group.is-hidden {
+  display: none;
+}
+
+.settings-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--c-accent-dark);       /* reicon 内部用 currentColor */
+}
+
+.settings-row-label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-row-value {
+  flex: none;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  white-space: nowrap;
+}
+
+.settings-row-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--c-hint);
+}
+
+/* ===== 搜索无结果 ===== */
+.settings-empty {
+  padding: 48px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--c-hint);
+}
+
+/* 减弱动态效果：取消横向位移，直接显示 / 隐藏 */
+@media (prefers-reduced-motion: reduce) {
+  .settings-page,
+  .settings-page.show {
+    transform: none;
+    transition: visibility 0s;
+  }
+  .settings-back {
+    transition: background var(--dur) var(--ease);
+  }
+  .settings-back:active {
+    transform: none;
+  }
+}
