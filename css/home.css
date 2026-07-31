@@ -1,5 +1,9 @@
 /* ===== 桌面容器与壁纸 ===== */
 #home-page {
+  /* 桌面与 Dock 共用的图标背景视觉参数：只有这一处定义，改这里两边同步 */
+  --icon-bg-size: 60px;
+  --icon-bg-radius: 14px;
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -63,7 +67,7 @@
   font-size: 11px;
   font-weight: 400;
   line-height: 1.2;
-  color: var(--c-text);
+  color: var(--c-title);
   text-align: center;
   white-space: nowrap;
   max-width: 72px;
@@ -107,18 +111,19 @@
 .dock-item:active {
   transform: scale(0.88);
 }
+/*
+ * Dock 名称不显示，不占位：display: none ，图标下方不会留下名称高度。
+ * 名称数据仍留在 DOM 和 aria-label 里，供无障碍朗读和后续「应用移动」功能使用。
+ */
 .dock-item span {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--c-text);
-  opacity: 0.7;
+  display: none;
 }
 
 /* ===== 玻璃效果 ===== */
 .icon-bg {
-  width: 60px;
-  height: 60px;
-  border-radius: 14px;
+  width: var(--icon-bg-size);
+  height: var(--icon-bg-size);
+  border-radius: var(--icon-bg-radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,9 +137,9 @@
 }
 
 .dock-icon-bg {
-  width: 52px;
-  height: 52px;
-  border-radius: 13px;
+  width: var(--icon-bg-size);
+  height: var(--icon-bg-size);
+  border-radius: var(--icon-bg-radius);
   display: flex;
   align-items: center;
   justify-content: center;

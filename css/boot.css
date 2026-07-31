@@ -35,8 +35,7 @@
   justify-content: center;
 }
 
-/* 标题与进度线的共同容器：宽度由 boot.js 写成标题实际渲染宽度并锁死，
-   这样标题收字距时线宽不会跟着抖 */
+/* 标题与进度线的共同容器，宽度锁死 */
 .boot-logo {
   position: relative;
   display: inline-flex;
@@ -61,7 +60,7 @@
   will-change: transform, opacity;
 }
 
-/* 收束：绕中心压扁 + 收字距 + 极轻模糊，最后透明度归零交给线层 */
+/* 收束：绕中心压扁 + 收字距 + 极轻模糊，透明度归零交给线层 */
 #boot.is-morphing .boot-title {
   transform: scaleY(0.06);
   letter-spacing: -0.05em;
@@ -91,7 +90,7 @@
   pointer-events: none;
 }
 
-/* 在标题压缩的最后阶段展开，接管视觉 */
+/* 标题压缩的最后阶段展开，接管视觉 */
 #boot.is-morphing .boot-progress {
   opacity: 1;
   transform: scaleX(1);
@@ -119,7 +118,7 @@
   transform: scaleX(1);
 }
 
-/* ===== 减弱动态效果：跳过压扁/模糊，直接显示满格细线再快速淡出 ===== */
+/* --- 减弱动态效果：跳过压扁/模糊，直接显示满格细线再快速淡出 --- */
 @media (prefers-reduced-motion: reduce) {
   #boot {
     transition: opacity 0.2s var(--ease);

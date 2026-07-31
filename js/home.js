@@ -1,3 +1,6 @@
+// 桌面与 Dock 共用的图标本体尺寸：只有这一处定义，改这里两边同步
+var ICON_SIZE = 26
+
 // ===== 应用清单 =====
 var APPS = [
   { id: 'chat',    name: 'Chat',     icon: 'chat-round-line' },
@@ -7,7 +10,7 @@ var APPS = [
 ]
 
 var DOCK_APPS = [
-  { id: 'settings', name: '设置', icon: 'settings2' },
+  { id: 'settings', name: '设置', icon: 'settings' },
   { id: 'theme',    name: '美化', icon: 'wand-sparkle' },
   { id: 'sms',      name: '短信', icon: 'chat-minus' }
 ]
@@ -30,14 +33,15 @@ function renderHome() {
 
   page.innerHTML = APPS.map(function(app) {
     return '<div class="app-icon" data-app="' + escapeHtml(app.id) + '">' +
-             '<div class="icon-bg"><re-icon icon="' + escapeHtml(app.icon) + '" size="26"></re-icon></div>' +
+             '<div class="icon-bg"><re-icon icon="' + escapeHtml(app.icon) + '" size="' + ICON_SIZE + '"></re-icon></div>' +
              '<div class="icon-label">' + escapeHtml(app.name) + '</div>' +
            '</div>'
   }).join('')
 
   dock.innerHTML = DOCK_APPS.map(function(app) {
-    return '<div class="dock-item" data-app="' + escapeHtml(app.id) + '">' +
-             '<div class="dock-icon-bg"><re-icon icon="' + escapeHtml(app.icon) + '" size="22"></re-icon></div>' +
+    // 名称 span 被 CSS 隐藏，aria-label 保证读屏仍能读到应用名
+    return '<div class="dock-item" data-app="' + escapeHtml(app.id) + '" aria-label="' + escapeHtml(app.name) + '">' +
+             '<div class="dock-icon-bg"><re-icon icon="' + escapeHtml(app.icon) + '" size="' + ICON_SIZE + '"></re-icon></div>' +
              '<span>' + escapeHtml(app.name) + '</span>' +
            '</div>'
   }).join('')
