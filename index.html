@@ -38,7 +38,8 @@
   <link rel="stylesheet" href="css/boot.css?v=1.1.0">
   <link rel="stylesheet" href="css/home.css?v=1.1.2">
   <link rel="stylesheet" href="css/settings.css?v=1.0.3">
-  <link rel="stylesheet" href="css/setting-api.css?v=1.2.0">
+  <link rel="stylesheet" href="css/setting-api.css?v=1.3.0">
+  <link rel="stylesheet" href="css/setting-version.css?v=1.0.0">
 </head>
 <body>
 
@@ -78,8 +79,10 @@
   <!-- store 必须排在用它的模块前面 -->
   <script src="js/store.js?v=1.0.0"></script>
   <script src="js/home.js?v=1.2.0"></script>
-  <script src="js/settings.js?v=1.1.0"></script>
-  <script src="js/setting-api.js?v=1.2.0"></script>
+  <!-- setting-version.js 必须排在 settings.js 之前：SETTINGS_GROUPS 的「版本」行解析期就要读 VERSION_NO -->
+  <script src="js/setting-version.js?v=1.0.0"></script>
+  <script src="js/settings.js?v=1.3.0"></script>
+  <script src="js/setting-api.js?v=1.3.0"></script>
   <script src="js/boot.js?v=1.1.1"></script>
 
   <script>

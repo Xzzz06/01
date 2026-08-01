@@ -731,6 +731,100 @@
 }
 .api-modal-foot .api-btn { width: 100%; }
 
+/* ===== 语音配置设置页 ===== */
+
+/* 分段卡槽 */
+.api-tabs.voice-tabs { height: 58px; }
+
+.voice-tab {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.voice-tab-eyebrow {
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  /* letter-spacing 会在最后一个字母后面也加一份，居中文本要补等量左边距抵消 */
+  margin-left: 0.16em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+  transition: color var(--dur) var(--ease);
+}
+.voice-tab.is-active .voice-tab-eyebrow { color: var(--c-sub); }
+
+.voice-tab-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.2;
+}
+
+/* ===== 服务地址行 ===== */
+/* 直接铺在分组小标题下面，不再套外框。
+ * 这一组不参与筛选，圆角可以交给 :first-child / :last-child，不需要 JS 打类 */
+.voice-opts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.voice-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 16px;
+  text-align: left;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+  transition: background var(--dur) var(--ease);
+}
+.voice-opt:first-child {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.voice-opt:last-child {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+.voice-opt:active { background: var(--press-bg); }
+
+/* 固定地址行：只展示，不接受点击 */
+.voice-opt.is-static { pointer-events: none; }
+
+.voice-opt-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.voice-opt-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+}
+
+.voice-opt-sub {
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  word-break: break-all;
+}
+
+.voice-opt-check {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--c-accent-dark);
+  opacity: 0;                        /* 占位保留，选中与否行高不跳 */
+}
+.voice-opt.is-selected .voice-opt-check { opacity: 1; }
+
 /* 减弱动态效果：取消横向位移与按压缩放，直接显示 / 隐藏 */
 @media (prefers-reduced-motion: reduce) {
   .api-page,

@@ -12,12 +12,13 @@ var SETTINGS_SLIDE = 300
 var SETTINGS_GROUPS = [
   { label: 'NOTIFICATION', rows: [
     { name: '系统通知',          icon: 'bell',             value: '',     keywords: 'notification tongzhi' },
-    { name: '后台保活',          icon: 'bulb2',            value: '',     keywords: 'background keepalive houtai' }
+    { name: '后台保活',          icon: 'bulb2',            value: '',     keywords: 'background keepalive houtai' },
+    { name: '悬浮球',            icon: 'bluetooth',         value: '',     keywords: 'floating ball xuanfuqiu' }
   ]},
   { label: 'GENERAL', rows: [
     { name: 'API 设置',          icon: 'key2',             value: '',     keywords: 'api key', page: 'api' },
-    { name: 'Minimax 语音设置',  icon: 'headphones-sound', value: '',     keywords: 'minimax voice tts yuyin' },
-    { name: 'IMAGE 图像设置',    icon: 'gallery3',         value: '',     keywords: 'image tuxiang' }
+    { name: '语音配置设置',      icon: 'headphones-sound', value: '',     keywords: 'voice tts minimax elevenlabs 语音 yuyin', page: 'voice' },
+    { name: '图像配置设置',    icon: 'gallery3',         value: '',     keywords: 'image tuxiang' }
   ]},
   { label: 'STYLE', rows: [
     { name: '主题样式',          icon: 'moon-sleep',       value: '',     keywords: 'theme dark zhuti' },
@@ -26,7 +27,8 @@ var SETTINGS_GROUPS = [
   { label: 'SYSTEM', rows: [
     { name: '数据存储',          icon: 'server',           value: '',     keywords: 'storage data cunchu' },
     { name: '隐私政策',          icon: 'shield-lock',      value: '',     keywords: 'privacy yinsi' },
-    { name: '版本',              icon: 'info-circle',      value: 'v1.0', keywords: 'version about banben' }
+    // 值取自 setting-version.js 的 VERSION_NO，那个文件必须排在本文件之前加载
+    { name: '版本',              icon: 'info-circle',      value: VERSION_NO, keywords: 'version about banben', page: 'version' }
   ]}
 ]
 
@@ -41,7 +43,9 @@ var _settingsTimer = null       // 全局唯一计时器，开 / 关互相抢占
 // 二级页登记表：新增页面
 // 值必须包一层函数 —— 直接写 { api: openApiPage } 在解析时是 undefined，setting-api.js 还没加载
 var SETTINGS_PAGES = {
-  api: function() { openApiPage() }
+  api: function() { openApiPage() },
+  voice: function() { openVoicePage() },
+  version: function() { openVersionPage() }
 }
 
 function openSettingsSubPage(id) {
