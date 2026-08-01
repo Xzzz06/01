@@ -34,10 +34,11 @@
   <!-- 图标库：图标数据内联；版本号锁死 -->
   <script src="https://unpkg.com/reicon@1/cdn/reicon.js"></script>
 
-  <link rel="stylesheet" href="css/base.css?v=1.1.1">
+  <link rel="stylesheet" href="css/base.css?v=1.2.0">
   <link rel="stylesheet" href="css/boot.css?v=1.1.0">
   <link rel="stylesheet" href="css/home.css?v=1.1.2">
-  <link rel="stylesheet" href="css/settings.css?v=1.0.2">
+  <link rel="stylesheet" href="css/settings.css?v=1.0.3">
+  <link rel="stylesheet" href="css/setting-api.css?v=1.2.0">
 </head>
 <body>
 
@@ -57,10 +58,11 @@
     </div>
 
     <div id="app">
+      <!-- 提示横幅：绝对定位悬浮层。必须挂在 #app 下，放进 #home-page 会跟着主屏一起被藏掉 -->
+      <div class="dev-banner" id="dev-banner" role="status" aria-live="polite"></div>
+
       <!-- 主屏幕骨架必须静态写在此处，renderHome() 只填内容不建容器 -->
       <div id="home-page">
-        <!-- 功能开发中提示横幅：绝对定位悬浮层 -->
-        <div class="dev-banner" id="dev-banner" role="status" aria-live="polite"></div>
         <div class="status-bar"></div>
         <div class="desktop-viewport">
           <div class="desktop-page" id="desktop-page"></div>
@@ -73,9 +75,11 @@
 
   </div>
 
-  <script src="js/home.js?v=1.1.1"></script>
-  <!-- 设置页：整页由 JS 在首次点击「设置」时创建，此处没有对应标记 -->
-  <script src="js/settings.js?v=1.0.1"></script>
+  <!-- store 必须排在用它的模块前面 -->
+  <script src="js/store.js?v=1.0.0"></script>
+  <script src="js/home.js?v=1.2.0"></script>
+  <script src="js/settings.js?v=1.1.0"></script>
+  <script src="js/setting-api.js?v=1.2.0"></script>
   <script src="js/boot.js?v=1.1.1"></script>
 
   <script>

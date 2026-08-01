@@ -5,7 +5,7 @@ var ICON_SIZE = 26
 var APPS = [
   { id: 'chat',    name: 'Chat',     icon: 'chat-round-line' },
   { id: 'profile', name: '档案',      icon: 'folder-files' },
-  { id: 'world',   name: '世界设定',   icon: 'book-bookmark2' },
+  { id: 'world',   name: '世界设定',   icon: 'notebook2' },
   { id: 'memory',  name: '记忆',      icon: 'heart-unlock' }
 ]
 
@@ -53,19 +53,20 @@ function renderHome() {
   })
 }
 
-// ===== 功能开发中提示横幅 =====
+// ===== 全局提示横幅 =====
+// 节点挂在 #app 下而不是 #home-page —— 全屏页打开时主屏是 visibility: hidden，挂里面就跟着被藏掉
 var BANNER_DURATION = 2000
 var bannerTimer = null            // 全局唯一计时器，连点时只会有一个在跑
 
-function showDevBanner(appName) {
+function showToast(text, duration) {
   var banner = document.getElementById('dev-banner')
-  // 缺少元素报错 —— 静默 return 会变成"点了图标什么都不发生且无从排查"
+  // 缺少元素报错 —— 静默 return 会变成"点了什么都不发生且无从排查"
   if (!banner) {
-    console.error('showDevBanner: 缺少 #dev-banner，检查 index.html 的 #home-page 骨架')
+    console.error('showToast: 缺少 #dev-banner，检查 index.html 的 #app 骨架')
     return
   }
 
-  banner.textContent = appName + '功能开发中'
+  banner.textContent = text
 
   // 复用同一个横幅：先清掉上一次的隐藏计时器，时间从本次点击重新起算
   if (bannerTimer !== null) clearTimeout(bannerTimer)
@@ -75,7 +76,11 @@ function showDevBanner(appName) {
   bannerTimer = setTimeout(function() {
     banner.classList.remove('show')
     bannerTimer = null
-  }, BANNER_DURATION)
+  }, duration || BANNER_DURATION)
+}
+
+function showDevBanner(appName) {
+  showToast(appName + '功能开发中')
 }
 
 // ===== 打开应用 =====

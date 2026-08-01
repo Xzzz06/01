@@ -1,0 +1,752 @@
+/* ===== API 设置页 ===== */
+/* 设计与理由见 PROMPT/06_API设置页.md
+ * 本文件禁止出现 backdrop-filter 和 will-change，滑入只动 transform。 */
+.api-page {
+  --card-radius: 20px;
+  --card-radius-in: 5px;       /* 组内相邻的角，与设置页同一套 */
+  --card-gap: 2px;
+  --card-bg: var(--c-surface-2);
+  --card-pad: 16px;
+  --field-h: 48px;
+  --btn-h: 46px;
+  --press-bg: var(--c-surface-3);
+
+  /* 字号 / 字重不在这里定义：统一走 base.css :root 的 --page-title-* / --label-* / --row-* */
+
+  position: absolute;          /* #app 是 position: relative，见 base.css */
+  inset: 0;
+  z-index: 11;                 /* 高于 .settings-page 的 10，低于 .dev-banner 的 20 */
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);   /* 必须不透明，完整盖住设置页 */
+
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s linear 0.3s;
+}
+
+.api-page.show {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s;
+}
+
+.api-scroll {
+  flex: 1;                     /* .scroll-area 不带 flex: 1 */
+  min-height: 0;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(12px + var(--sat)) 20px calc(32px + var(--sab));
+}
+
+/* ===== 顶栏：返回键绝对定位，标题真正居中 ===== */
+/* 高度由「标题 + 英文标题」这一整块决定，返回键自己居中，不靠 header 的高度定位 */
+.api-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;                  /* 兜底：标题块比返回键矮时不至于把按钮挤出去 */
+  /* 左右各让出返回键的宽度，标题才是相对整页居中而不是相对剩余空间 */
+  padding: 0 44px;
+}
+
+.api-heading {
+  min-width: 0;
+  text-align: center;
+}
+
+.api-back {
+  position: absolute;
+  left: 0;
+  /* 上下拉满 + margin auto 做垂直居中，把 transform 完整留给 :active 的缩放 */
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-text);              /* reicon 内部用 currentColor */
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.api-back:active {
+  transform: scale(0.88);
+  background: var(--press-bg);
+}
+
+.api-title {
+  margin: 0;
+  /* 不能用 --font-display：fonts/标题.woff2 只子集化了 "Qu Phone"，中文会静默回退 */
+  font-family: var(--font-ui);
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);
+}
+
+/* 与标题同属 .api-heading，这一行就是标题与副标题之间唯一的间距来源 */
+.api-subtitle {
+  margin-top: 5px;
+  white-space: nowrap;
+  /* letter-spacing 会在最后一个字母后面也加一份，居中文本要补等量左边距抵消 */
+  margin-left: 0.18em;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+/* ===== 分段卡槽 ===== */
+.api-tabs {
+  --tab-pad: 4px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--api-tab-n, 2), 1fr);
+  height: 48px;
+  margin-top: 24px;
+  padding: var(--tab-pad);
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+}
+
+/* 滑块压在按钮下面，按钮背景保持透明，文字才不会被盖住 */
+.api-tab-ind {
+  position: absolute;
+  z-index: 0;
+  top: var(--tab-pad);
+  bottom: var(--tab-pad);
+  left: var(--tab-pad);
+  width: calc((100% - var(--tab-pad) * 2) / var(--api-tab-n, 2));
+  border-radius: var(--r-pill);
+  background: var(--c-bg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10), 0 0 1px rgba(0, 0, 0, 0.06);
+  /* 只动 transform：切背景色 + box-shadow 过渡是每帧重新栅格化模糊阴影，移动端最贵的写法 */
+  transform: translateX(calc(var(--api-tab-i, 0) * 100%));
+  transition: transform 0.26s var(--ease);
+}
+
+.api-tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0;
+  border-radius: var(--r-pill);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-hint);
+  transition: color var(--dur) var(--ease);
+}
+.api-tab.is-active { color: var(--c-text); }
+
+/* ===== 面板 ===== */
+.api-panel { display: none; }
+.api-panel.is-active { display: block; }
+
+/* hidden 属性来自 UA 样式表，任何 display 声明都会盖掉它，这里补一条更高优先级的 */
+.api-page [hidden] { display: none; }
+
+/* ===== 分组小标题：与 .settings-group-label 同参数 ===== */
+.api-section-label {
+  margin: 26px 0 10px;
+  padding-left: 4px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+.api-card {
+  padding: var(--card-pad);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+}
+
+/* ===== 额度卡 ===== */
+.api-quota-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.api-quota-num {
+  font-size: var(--metric-size);
+  font-weight: var(--metric-weight);
+  line-height: 1.1;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+.api-quota-unit {
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+.api-quota-hint {
+  margin-top: 6px;
+  font-size: var(--row-value-size);
+  line-height: 1.4;
+  color: var(--c-hint);
+}
+
+/* ===== 操作按钮（拉取模型）===== */
+.api-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--btn-h);
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+  transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.api-action:active { background: var(--press-bg); }
+.api-action.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+/* 拉取中图标转圈；reduced-motion 下由下方的规则停掉 */
+.api-action.is-loading re-icon { animation: api-spin 0.9s linear infinite; }
+
+@keyframes api-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== 页面上的「当前模型」行 ===== */
+/* 完整列表在弹窗里，页面上只留这一行，形态照搬设置页的 .settings-row */
+.api-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 0 18px;
+  text-align: left;
+  background: var(--card-bg);
+  border-radius: var(--card-radius);   /* 只有一行，四角都是大圆角 */
+  transition: background var(--dur) var(--ease);
+}
+.api-row:active { background: var(--press-bg); }
+
+.api-row-label {
+  flex: none;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+}
+
+.api-row-value {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.api-row-value.is-empty { color: var(--c-hint); }
+
+.api-row-chevron {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--c-hint);
+}
+
+/* ===== 模型行（弹窗内）===== */
+/* 沿用设置页的「2px 透明缝 + 外角大圆角」。
+ * 外角类由 apiApplyModelCorners() 打到「可见的」首 / 末行上 ——
+ * 弹窗带搜索筛选，:first-child 匹配的是 DOM 而不是可见行，首行被筛掉后整组顶部会塌 */
+.api-model {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 16px;
+  text-align: left;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+  transition: background var(--dur) var(--ease);
+}
+.api-model.is-first {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.api-model.is-last {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+.api-model.is-hidden { display: none; }
+.api-model:active { background: var(--press-bg); }
+
+.api-model-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+  word-break: break-all;
+}
+
+.api-model-check {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--c-accent-dark);
+  opacity: 0;                        /* 占位保留，选中与否行高不跳 */
+}
+.api-model.is-selected .api-model-check { opacity: 1; }
+
+/* ===== 温度滑块 ===== */
+.api-slider {
+  padding: 14px var(--card-pad) 6px;
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+}
+.api-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.api-slider-label {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+}
+.api-slider-value {
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+  font-variant-numeric: tabular-nums;
+}
+.api-slider-scale {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  font-size: var(--row-value-size);
+  color: var(--c-hint);
+}
+
+.api-range {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 44px;                      /* 触控靶区高度，不是轨道高度 */
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+.api-range:focus { outline: none; }
+
+/* webkit 与 moz 的伪元素必须分开写：任何一侧不认识的伪元素会让整条规则在两边都失效 */
+.api-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  /* webkit 没有 ::-webkit-slider-progress，已填充段只能靠这条渐变，--api-fill 由 JS 更新 */
+  background: linear-gradient(to right,
+    var(--c-accent) 0 var(--api-fill, 50%),
+    var(--c-surface-3) var(--api-fill, 50%) 100%);
+}
+.api-range::-webkit-slider-thumb {
+  -webkit-appearance: none;          /* 伪元素里要再写一次，否则还是原生滑块 */
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;                  /* (4 - 22) / 2，webkit 不会自动居中，firefox 会 */
+  border: 1px solid var(--c-border-m);
+  border-radius: 50%;
+  background: var(--c-bg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+.api-range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--c-surface-3);    /* firefox 用原生 progress 填充，轨道必须是纯色否则叠两层 */
+}
+.api-range::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--c-accent);
+}
+.api-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--c-border-m);
+  border-radius: 50%;
+  background: var(--c-bg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+/* ===== 输入字段 ===== */
+.api-field { margin-bottom: 12px; }
+
+.api-field-label {
+  display: block;
+  margin: 0 0 8px 4px;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+
+.api-field-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--field-h);
+  padding: 0 6px 0 16px;
+  border-radius: 24px;
+  background: var(--c-surface-2);
+}
+
+.api-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  color: var(--c-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.api-input::placeholder { color: var(--c-hint); }
+
+/* 遮罩用 text-security 而不是 type="password"：
+ * 避开 iOS 的钥匙串 / 强密码弹窗，切换显示时也不会丢光标 */
+.api-input.is-masked {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+
+.api-eye {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  color: var(--c-hint);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.api-eye:active { background: var(--press-bg); }
+.api-eye[aria-pressed="true"] { color: var(--c-accent-dark); }
+/* 两个图标都渲染出来，靠 class 切换 —— 改 re-icon 的 icon 属性是否重渲染不由本项目控制 */
+.api-eye .api-eye-off { display: none; }
+.api-eye[aria-pressed="true"] .api-eye-on { display: none; }
+.api-eye[aria-pressed="true"] .api-eye-off { display: inline-flex; }
+
+/* ===== 按钮行 ===== */
+.api-btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.api-btn {
+  flex: 1;
+  min-width: 0;
+  height: var(--btn-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.api-btn:active {
+  transform: scale(0.97);
+  background: var(--press-bg);
+}
+
+.api-btn-primary {
+  background: var(--c-accent-dark);
+  color: var(--c-bg);
+}
+.api-btn-primary:active { background: var(--c-text); }
+
+/* ===== 存为预设：内联命名条，不用 prompt() ===== */
+.api-preset-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.api-preset-new .api-field-box { flex: 1; min-width: 0; }
+.api-preset-new .api-btn { flex: none; width: auto; padding: 0 18px; }
+
+/* ===== 预设列表 ===== */
+.api-presets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.api-preset {
+  display: flex;
+  align-items: stretch;
+  gap: var(--card-gap);
+}
+.api-preset:first-child .api-preset-main {
+  border-top-left-radius: var(--card-radius);
+}
+.api-preset:first-child .api-preset-side {
+  border-top-right-radius: var(--card-radius);
+}
+.api-preset:last-child .api-preset-main {
+  border-bottom-left-radius: var(--card-radius);
+}
+.api-preset:last-child .api-preset-side {
+  border-bottom-right-radius: var(--card-radius);
+}
+
+.api-preset-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-height: 56px;
+  padding: 10px 16px;
+  text-align: left;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+  transition: background var(--dur) var(--ease);
+}
+.api-preset-main:active { background: var(--press-bg); }
+
+.api-preset-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+}
+.api-preset-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.api-preset-name re-icon { color: var(--c-accent-dark); }
+
+.api-preset-sub {
+  max-width: 100%;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-preset-side {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 0 12px;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+  color: var(--c-hint);
+  font-size: var(--row-value-size);
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.api-preset-side:active { background: var(--press-bg); }
+/* 二次确认态：全站严格灰阶，只靠文案和深浅区分，不用红色 */
+.api-preset.is-confirming .api-preset-side {
+  background: var(--c-accent-dark);
+  color: var(--c-bg);
+}
+
+.api-empty {
+  padding: 28px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--c-hint);
+}
+
+/* ===== 选模型弹窗 ===== */
+/* 挂在 .api-page 直属、与 .api-scroll 平级，放进滚动区会跟着页面一起滚 */
+.api-modal {
+  position: absolute;
+  inset: 0;
+  /* .api-page 自己是 z-index:11 且已形成层叠上下文，这里只是页内序号，
+   * 压不过 #app 层的 .dev-banner（20）—— 拉取失败的横幅仍然浮在弹窗之上 */
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(24px + var(--sat)) 20px calc(24px + var(--sab));
+}
+
+.api-modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);   /* 纯色遮罩，本文件禁用 backdrop-filter */
+  touch-action: none;                /* 在遮罩上拖动不会带着后面的页面滚 */
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+.api-modal.show .api-modal-scrim { opacity: 1; }
+
+.api-modal-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 340px;
+  max-height: 100%;
+  padding: 22px 18px 18px;
+  border-radius: 28px;
+  background: var(--c-bg);           /* 纯白卡片，衬出里面 --c-surface-2 的行 */
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.api-modal.show .api-modal-card {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 顺序与页面顶栏一致：中文标题在上、英文小标题在下 */
+.api-modal-head {
+  flex: none;
+  text-align: center;
+  padding-bottom: 16px;
+}
+
+.api-modal-title {
+  margin: 0;
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);
+}
+
+.api-modal-eyebrow {
+  margin-top: 5px;
+  /* letter-spacing 会在最后一个字母后面也加一份，居中文本要补等量左边距抵消 */
+  margin-left: 0.18em;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+.api-modal-count {
+  margin-top: 10px;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+}
+
+.api-modal-search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  margin-bottom: 10px;
+  padding: 0 16px;
+  border-radius: 22px;
+  background: var(--c-surface-2);
+  color: var(--c-hint);
+}
+.api-modal-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  color: var(--c-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.api-modal-search input::placeholder { color: var(--c-hint); }
+.api-modal-search input::-webkit-search-decoration,
+.api-modal-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.api-modal-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+  overscroll-behavior: contain;      /* 列表滚到头不把滚动链传给背后的 .api-scroll */
+}
+
+.api-modal-empty {
+  flex: none;
+  padding: 32px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--c-hint);
+}
+
+.api-modal-foot {
+  flex: none;
+  padding-top: 14px;
+}
+.api-modal-foot .api-btn { width: 100%; }
+
+/* 减弱动态效果：取消横向位移与按压缩放，直接显示 / 隐藏 */
+@media (prefers-reduced-motion: reduce) {
+  .api-page,
+  .api-page.show {
+    transform: none;
+    transition: visibility 0s;
+  }
+  .api-tab-ind { transition: none; }
+  .api-action.is-loading re-icon { animation: none; }
+  .api-back { transition: background var(--dur) var(--ease); }
+  .api-back:active,
+  .api-btn:active { transform: none; }
+  /* 弹窗只保留淡入，去掉缩放 */
+  .api-modal-card {
+    transform: none;
+    transition: opacity 0.15s linear;
+  }
+  .api-modal.show .api-modal-card { transform: none; }
+}

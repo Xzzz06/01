@@ -8,7 +8,7 @@
   --row-gap: 2px;              /* 行与行之间的透明缝 */
   --row-h: 44px;
   --row-bg: var(--c-surface-2);
-  --row-bg-active: #e4e4e4;
+  --row-bg-active: var(--c-surface-3);
 
   /* 字号 / 字重不在这里定义：统一走 base.css :root 的 --title-* / --label-* / --row-* */
 

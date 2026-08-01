@@ -12,6 +12,7 @@
   --c-bg: #ffffff;          /* 纯白，用于卡片/页面底 */
   --c-surface: #f6f6f6;     /* 主背景灰，桌面壁纸基色 */
   --c-surface-2: #ededed;   /* 次级灰，渐变暗端 */
+  --c-surface-3: #e4e4e4;   /* 按压态灰 */
   --c-desk: #d9d9d9;        /* 预留颜色 */
   --c-border: rgba(0, 0, 0, 0.05);
   --c-border-m: rgba(0, 0, 0, 0.09);
@@ -55,8 +56,12 @@
   --font-size-body: 14px;
 
   /* ===== 排版层级「统一，禁止各页各写一套」===== */
-  --title-size: 32px;        /* 大标题 */
+  --title-size: 32px;        /* 一级页大标题：左对齐、独占一行 */
   --title-weight: 600;
+  --page-title-size: 18px;   /* 二级页标题：与返回键同排居中，用 32px 会顶到按钮 */
+  --page-title-weight: 500;
+  --metric-size: 28px;       /* 大数字：额度、计数 */
+  --metric-weight: 600;
   --label-size: 10px;        /* 分组标题共用 */
   --label-weight: 500;
   --row-name-size: 14px;     /* 行名 */

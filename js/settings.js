@@ -15,7 +15,7 @@ var SETTINGS_GROUPS = [
     { name: '后台保活',          icon: 'bulb2',            value: '',     keywords: 'background keepalive houtai' }
   ]},
   { label: 'GENERAL', rows: [
-    { name: 'API 设置',          icon: 'key2',             value: '',     keywords: 'api key' },
+    { name: 'API 设置',          icon: 'key2',             value: '',     keywords: 'api key', page: 'api' },
     { name: 'Minimax 语音设置',  icon: 'headphones-sound', value: '',     keywords: 'minimax voice tts yuyin' },
     { name: 'IMAGE 图像设置',    icon: 'gallery3',         value: '',     keywords: 'image tuxiang' }
   ]},
@@ -34,10 +34,22 @@ var _settingsEl = null          // 页面根节点，建好后一直留在 DOM �
 var _settingsScrollEl = null
 var _settingsSearchEl = null
 var _settingsEmptyEl = null
+var _settingsListEl = null
 var _settingsGroupEls = []      // [{ el, rows: [] }]，筛选时不再查 DOM
 var _settingsTimer = null       // 全局唯一计时器，开 / 关互相抢占，避免快速连点时打架
 
-// ===== 建页面（只跑一次）=====
+// 二级页登记表：新增页面
+// 值必须包一层函数 —— 直接写 { api: openApiPage } 在解析时是 undefined，setting-api.js 还没加载
+var SETTINGS_PAGES = {
+  api: function() { openApiPage() }
+}
+
+function openSettingsSubPage(id) {
+  var open = SETTINGS_PAGES[id]
+  if (open) open()
+}
+
+// ===== 建页面「只跑一次」=====
 function buildSettingsPage() {
   var app = document.getElementById('app')
   // 缺少元素报错 —— 静默 return 会变成「点了设置什么都不发生且无从排查」
@@ -57,7 +69,9 @@ function buildSettingsPage() {
       var row = group.rows[j]
       // data-search 建的时候就拼好并转小写，每次输入只做一次 indexOf
       var search = (row.name + ' ' + row.keywords + ' ' + group.label).toLowerCase()
-      listHtml += '<button class="settings-row" type="button" data-search="' + escapeHtml(search) + '">' +
+      // 只有登记了二级页的行才带 data-page，其余行仍然点了什么都不发生
+      var pageAttr = row.page ? ' data-page="' + escapeHtml(row.page) + '"' : ''
+      listHtml += '<button class="settings-row" type="button" data-search="' + escapeHtml(search) + '"' + pageAttr + '>' +
                     '<span class="settings-row-icon"><re-icon icon="' + escapeHtml(row.icon) + '" size="' + SETTINGS_ICON_SIZE + '"></re-icon></span>' +
                     '<span class="settings-row-label">' + escapeHtml(row.name) + '</span>' +
                     '<span class="settings-row-value">' + escapeHtml(row.value) + '</span>' +
@@ -95,6 +109,7 @@ function buildSettingsPage() {
   _settingsScrollEl = el.querySelector('.settings-scroll')
   _settingsSearchEl = el.querySelector('.settings-search input')
   _settingsEmptyEl = el.querySelector('.settings-empty')
+  _settingsListEl = el.querySelector('.settings-list')
 
   _settingsGroupEls = []
   var groupEls = el.querySelectorAll('.settings-group')
@@ -115,7 +130,14 @@ function buildSettingsPage() {
     })
   }
 
-  // 行不绑任何点击事件：只有 CSS 的 :active 视觉反馈，松手什么都不发生
+  // 事件委托，不给每行单独绑；没有 data-page 的行只有 CSS 的 :active 视觉反馈
+  if (_settingsListEl) {
+    _settingsListEl.addEventListener('click', function(e) {
+      var row = e.target.closest('[data-page]')
+      if (row) openSettingsSubPage(row.getAttribute('data-page'))
+    })
+  }
+
   applySettingsCorners()
 
   return el
