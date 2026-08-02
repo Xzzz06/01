@@ -1,0 +1,163 @@
+/* ===== 共享头像弹窗 ===== */
+/* 设计与理由见 PROMPT/09_角色档案页.md
+ * 只写与「选头像」有关的通用样式，任何角色档案页的差异样式都不许写进来。
+ * 本文件禁止出现 backdrop-filter 和 will-change。 */
+.ap-modal {
+  position: absolute;          /* #app 是 position: relative，见 base.css */
+  inset: 0;
+  z-index: 12;                 /* 高于 .api-page / 详情页的 11，低于 .dev-banner 的 20 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(24px + var(--sat)) 20px calc(24px + var(--sab));
+}
+
+/* hidden 属性来自 UA 样式表，上面的 display 会盖掉它，这里补一条更高优先级的 */
+.ap-modal[hidden] { display: none; }
+
+.ap-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);   /* 纯色遮罩，本文件禁用 backdrop-filter */
+  touch-action: none;                /* 在遮罩上拖动不会带着后面的页面滚 */
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+.ap-modal.show .ap-scrim { opacity: 1; }
+
+.ap-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  max-height: 100%;
+  padding: 22px 18px 18px;
+  border-radius: 28px;
+  background: var(--c-bg);           /* 纯白卡片，衬出里面 --c-surface-2 的控件 */
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+  overscroll-behavior: contain;      /* 卡片滚到头不把滚动链传给背后的页面 */
+  -webkit-overflow-scrolling: touch;
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.ap-modal.show .ap-card {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 顺序与全站页面顶栏一致：中文标题在上、英文小标题在下 */
+.ap-title {
+  margin: 0;
+  text-align: center;
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);
+}
+
+.ap-eyebrow {
+  margin: -5px 0 4px;
+  text-align: center;
+  /* letter-spacing 会在最后一个字母后面也加一份，居中文本要补等量左边距抵消 */
+  margin-left: 0.18em;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+.ap-preview {
+  align-self: center;
+  width: 108px;
+  height: 108px;
+  margin: 4px 0 8px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--c-surface-2);
+}
+.ap-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ap-url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ap-url-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+}
+
+.ap-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  color: var(--c-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ap-input::placeholder { color: var(--c-hint); }
+
+.ap-btn {
+  flex: none;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.ap-btn:active {
+  transform: scale(0.97);
+  background: var(--c-surface-3);
+}
+
+.ap-btn-primary {
+  background: var(--c-accent-dark);
+  color: var(--c-bg);
+}
+.ap-btn-primary:active { background: var(--c-text); }
+
+.ap-btn-ok.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* 减弱动态效果：去掉缩放，只保留淡入 */
+@media (prefers-reduced-motion: reduce) {
+  .ap-card {
+    transform: none;
+    transition: opacity 0.15s linear;
+  }
+  .ap-modal.show .ap-card { transform: none; }
+  .ap-btn:active { transform: none; }
+}

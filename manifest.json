@@ -9,7 +9,7 @@
   "theme_color": "#f6f6f6",
   "description": "一个仿真手机网页",
   "icons": [
-    { "src": "img/icon_192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "img/icon_512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "icon/icon_192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon/icon_512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

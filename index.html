@@ -20,9 +20,9 @@
   <meta name="theme-color" content="#f6f6f6">
 
   <!-- iOS 桌面图标 -->
-  <link rel="apple-touch-icon" href="img/icon_192.png">
+  <link rel="apple-touch-icon" href="icon/icon_192.png">
   <!-- 浏览器标签页图标 -->
-  <link rel="icon" type="image/png" href="img/icon_192.png">
+  <link rel="icon" type="image/png" href="icon/icon_192.png">
   <!-- Android 识别安装文件 -->
   <link rel="manifest" href="manifest.json">
 
@@ -40,6 +40,9 @@
   <link rel="stylesheet" href="css/settings.css?v=1.0.3">
   <link rel="stylesheet" href="css/setting-api.css?v=1.3.0">
   <link rel="stylesheet" href="css/setting-version.css?v=1.0.0">
+  <link rel="stylesheet" href="css/avatar-picker.css?v=1.0.0">
+  <!-- profile.css 复用 setting-api.css 的弹窗 / 分段卡槽 / 输入框，必须排在它之后 -->
+  <link rel="stylesheet" href="css/profile.css?v=1.2.0">
 </head>
 <body>
 
@@ -78,11 +81,16 @@
 
   <!-- store 必须排在用它的模块前面 -->
   <script src="js/store.js?v=1.0.0"></script>
-  <script src="js/home.js?v=1.2.0"></script>
+  <script src="js/home.js?v=1.2.1"></script>
   <!-- setting-version.js 必须排在 settings.js 之前：SETTINGS_GROUPS 的「版本」行解析期就要读 VERSION_NO -->
   <script src="js/setting-version.js?v=1.0.0"></script>
   <script src="js/settings.js?v=1.3.0"></script>
   <script src="js/setting-api.js?v=1.3.0"></script>
+  <!-- avatar-picker.js 必须排在 profile.js 之前：角色编辑页点头像时要调它的单例 -->
+  <script src="js/avatar-picker.js?v=1.0.0"></script>
+  <!-- profile.js 依赖 store.js / home.js 的 escapeHtml、showToast，以及 setting-api.js 的
+       apiBindEye()、apiApplyRowCorners()，必须排在这几个文件之后 -->
+  <script src="js/profile.js?v=1.2.0"></script>
   <script src="js/boot.js?v=1.1.1"></script>
 
   <script>
