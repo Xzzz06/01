@@ -46,6 +46,8 @@ var _pfSearchInputEl = null
 var _pfSearchBtnEl = null
 var _pfMenuEl = null
 var _pfMenuScrimEl = null
+var _pfMenuBlurEl = null
+var _pfHeadEl = null
 var _pfMenuBtnEl = null
 var _pfFeaturedEl = null
 var _pfFcEl = null               // .pf-fcards，每次渲染都会换新的
@@ -60,6 +62,7 @@ var _pfFcY0 = 0
 var _pfFcDX = 0
 var _pfFcT0 = 0
 var _pfTabEls = []
+var _pfTabIndEl = null           // 选择行的滑块，跟着当前标签走
 var _pfTabGroupEl = null         // folder 按钮里跟在图标后面的分组名
 var _pfGridEl = null
 var _pfEmptyEl = null
@@ -281,6 +284,7 @@ function buildProfilePage() {
       '<section class="pf-featured" hidden aria-label="收藏角色"></section>' +
 
       '<div class="pf-tabs-row">' +
+        '<div class="pf-tab-ind" aria-hidden="true"></div>' +
         pfTabBtnHtml('special', 'SPECIAL') +
         pfTabBtnHtml('char', 'CHAR') +
         pfTabBtnHtml('npc', 'NPC') +
@@ -295,13 +299,27 @@ function buildProfilePage() {
     '</div>' +
 
     // 菜单、遮罩与弹窗都与 .pf-scroll 平级：放进滚动区里会跟着页面一起滚
+    // 模糊层只负责视觉，从顶栏底部开始（顶栏不模糊）；点击仍由全屏 scrim 接住
     '<div class="pf-menu-scrim" hidden data-act="menu-close"></div>' +
+    '<div class="pf-menu-blur" hidden></div>' +
     '<div class="pf-menu" hidden role="menu">' +
-      '<button class="pf-menu-item" type="button" role="menuitem" data-act="new-char">新建 CHAR</button>' +
-      '<button class="pf-menu-item" type="button" role="menuitem" data-act="new-npc">新建 NPC</button>' +
+      '<button class="pf-menu-item" type="button" role="menuitem" data-act="new-char">' +
+        '<span class="pf-menu-text">新建 CHAR</span>' +
+        '<span class="pf-menu-ico"><re-icon icon="user" size="18"></re-icon></span>' +
+      '</button>' +
+      '<button class="pf-menu-item" type="button" role="menuitem" data-act="new-npc">' +
+        '<span class="pf-menu-text">新建 NPC</span>' +
+        '<span class="pf-menu-ico"><re-icon icon="users" size="18"></re-icon></span>' +
+      '</button>' +
       // 本期只显示，不绑任何事件：不开文件框、不导入导出、也不弹「开发中」
-      '<div class="pf-menu-item is-idle">导入 PNG</div>' +
-      '<div class="pf-menu-item is-idle">导出 PNG</div>' +
+      '<div class="pf-menu-item is-idle">' +
+        '<span class="pf-menu-text">导入 PNG</span>' +
+        '<span class="pf-menu-ico"><re-icon icon="gallery-download" size="18"></re-icon></span>' +
+      '</div>' +
+      '<div class="pf-menu-item is-idle">' +
+        '<span class="pf-menu-text">导出 PNG</span>' +
+        '<span class="pf-menu-ico"><re-icon icon="gallery-send" size="18"></re-icon></span>' +
+      '</div>' +
     '</div>' +
     pfGroupModalHtml()
 
@@ -315,7 +333,10 @@ function buildProfilePage() {
   _pfMenuBtnEl = el.querySelector('[data-act="menu"]')
   _pfMenuEl = el.querySelector('.pf-menu')
   _pfMenuScrimEl = el.querySelector('.pf-menu-scrim')
+  _pfMenuBlurEl = el.querySelector('.pf-menu-blur')
+  _pfHeadEl = el.querySelector('.pf-head')
   _pfFeaturedEl = el.querySelector('.pf-featured')
+  _pfTabIndEl = el.querySelector('.pf-tab-ind')
   _pfTabGroupEl = el.querySelector('.pf-tab-group-name')
   _pfGridEl = el.querySelector('.pf-grid')
   _pfEmptyEl = el.querySelector('.pf-empty')
@@ -452,14 +473,20 @@ function pfOpenMenu() {
   // 按钮跟着页面滚，菜单位置只能在打开这一刻按实际坐标算
   var btn = _pfMenuBtnEl.getBoundingClientRect()
   var page = _pfEl.getBoundingClientRect()
-  _pfMenuEl.style.top = (btn.bottom - page.top + 8) + 'px'
+  _pfMenuEl.style.top = (btn.bottom - page.top + 18) + 'px'
   _pfMenuEl.style.right = (page.right - btn.right) + 'px'
+
+  // 模糊层从顶栏底部开始：顶栏本身不模糊
+  var head = _pfHeadEl.getBoundingClientRect()
+  _pfMenuBlurEl.style.top = Math.max(head.bottom - page.top, 0) + 'px'
 
   _pfMenuOpen = true
   _pfMenuScrimEl.hidden = false
+  _pfMenuBlurEl.hidden = false
   _pfMenuEl.hidden = false
   void _pfMenuEl.offsetHeight
   _pfMenuEl.classList.add('show')
+  _pfMenuBlurEl.classList.add('show')
   _pfMenuBtnEl.setAttribute('aria-expanded', 'true')
 }
 
@@ -469,6 +496,8 @@ function pfCloseMenu() {
   _pfMenuOpen = false
   _pfMenuEl.classList.remove('show')
   _pfMenuEl.hidden = true
+  _pfMenuBlurEl.classList.remove('show')
+  _pfMenuBlurEl.hidden = true
   _pfMenuScrimEl.hidden = true
   _pfMenuBtnEl.setAttribute('aria-expanded', 'false')
 }
@@ -488,10 +517,11 @@ function pfSelectTab(id) {
 }
 
 function pfRenderTabs() {
+  var activeEl = null
   for (var i = 0; i < _pfTabEls.length; i++) {
     var id = _pfTabEls[i].getAttribute('data-tab')
     var active = id === _pfTab
-    if (active) _pfTabEls[i].classList.add('is-active')
+    if (active) { _pfTabEls[i].classList.add('is-active'); activeEl = _pfTabEls[i] }
     else _pfTabEls[i].classList.remove('is-active')
     _pfTabEls[i].setAttribute('aria-pressed', active ? 'true' : 'false')
   }
@@ -503,6 +533,22 @@ function pfRenderTabs() {
   } else {
     _pfTabGroupEl.textContent = ''
     _pfTabGroupEl.hidden = true
+  }
+
+  pfMoveTabInd(activeEl)
+}
+
+// 四个标签宽度不等（folder 会随分组名伸缩），滑块不能像编辑页那样按序号乘等宽，
+// 只能在分组名更新完之后按实际位置量。首次定位不播动画，直接落位
+function pfMoveTabInd(activeEl) {
+  if (!activeEl) return
+  var first = !_pfTabIndEl.style.width
+  if (first) _pfTabIndEl.style.transition = 'none'
+  _pfTabIndEl.style.transform = 'translateX(' + activeEl.offsetLeft + 'px)'
+  _pfTabIndEl.style.width = activeEl.offsetWidth + 'px'
+  if (first) {
+    void _pfTabIndEl.offsetWidth
+    _pfTabIndEl.style.transition = ''
   }
 }
 

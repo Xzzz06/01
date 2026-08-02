@@ -220,14 +220,25 @@
   background: none;              /* 只用来接住「点菜单外」，不做视觉遮罩 */
 }
 
+/* 模糊底层内容防止文字重叠；top 由 JS 定在顶栏底部，顶栏不模糊 */
+.pf-menu-blur {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  pointer-events: none;          /* 点击穿给 scrim */
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.16s var(--ease);
+}
+.pf-menu-blur.show { opacity: 1; }
+
 .pf-menu {
   position: absolute;
   z-index: 5;
   min-width: 152px;
-  padding: 6px;
-  border-radius: var(--r-md);
-  background: var(--c-bg);
-  box-shadow: var(--shadow-lg);
   opacity: 0;
   transform: scale(0.94);
   transform-origin: top right;
@@ -238,22 +249,42 @@
   transform: scale(1);
 }
 
+/* 每行：文字在左、40px 圆形图标钮在右，整体靠右对齐，圆钮正对顶栏加号 */
 .pf-menu-item {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
   width: 100%;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 12px;
-  text-align: left;
+  padding: 0;                    /* button 行不清掉默认内边距会和 div 行错位 */
+  text-align: right;
   font-size: var(--row-name-size);
   font-weight: var(--row-name-weight);
   color: var(--c-text);
-  transition: background var(--dur) var(--ease);
 }
-button.pf-menu-item:active { background: var(--c-surface-2); }
+.pf-menu-item + .pf-menu-item { margin-top: 14px; }
+
+/* 与顶栏 .pf-round 同款 */
+.pf-menu-ico {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+button.pf-menu-item:active .pf-menu-ico {
+  transform: scale(0.9);
+  background: var(--press-bg);
+}
+
 /* 导入 / 导出 PNG 本期不绑任何事件，用最弱字色标明它现在不响应 */
 .pf-menu-item.is-idle { color: var(--c-hint); }
+.pf-menu-item.is-idle .pf-menu-ico { color: var(--c-hint); }
 
 /* ===== 上方精选角色卡 ===== */
 /* 层叠构图：当前卡居中，前后两张缩小平移藏到它背后，左右各露出照片的一条边缘。
@@ -444,6 +475,7 @@ button.pf-menu-item:active { background: var(--c-surface-2); }
 
 /* ===== 四项选择行 ===== */
 .pf-tabs-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -451,6 +483,19 @@ button.pf-menu-item:active { background: var(--c-surface-2); }
   padding: 4px;
   border-radius: var(--r-pill);
   background: var(--c-surface-2);
+}
+
+/* 滑块压在按钮下面（同 .api-tab-ind），位置和宽度由 JS 按实测写入 */
+.pf-tab-ind {
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 0;
+  border-radius: var(--r-pill);
+  background: var(--c-accent-dark);
+  transition: transform 0.26s var(--ease), width 0.26s var(--ease);
 }
 
 .pf-tab {
@@ -468,13 +513,10 @@ button.pf-menu-item:active { background: var(--c-surface-2); }
   letter-spacing: 0.04em;
   color: var(--c-sub);
   white-space: nowrap;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  z-index: 1;
+  transition: color var(--dur) var(--ease);
 }
-/* 只有一套 active 背景，四个标签共用 */
-.pf-tab.is-active {
-  background: var(--c-accent-dark);
-  color: var(--c-bg);
-}
+.pf-tab.is-active { color: var(--c-bg); }
 .pf-tab:active { color: var(--c-text); }
 .pf-tab.is-active:active { color: var(--c-bg); }
 
@@ -550,6 +592,7 @@ button.pf-menu-item:active { background: var(--c-surface-2); }
 
 .pf-card-desc {
   margin-top: 8px;
+  min-height: calc(2 * 1.45em);   /* 恒占两行，同排卡片等高后不会把余量塞给下面的 margin-top: auto */
   font-size: var(--row-value-size);
   line-height: 1.45;
   color: var(--c-sub);
@@ -587,6 +630,8 @@ button.pf-menu-item:active { background: var(--c-surface-2); }
   flex: none;
   width: 44px;                   /* 触控靶区，图标本体只有 16px */
   height: 44px;
+  margin-top: -13px;             /* 44px 靶区不参与 foot 行高，否则分组标签上方会多出 13px */
+  margin-bottom: -13px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -865,6 +910,7 @@ button.pf-menu-item:active { background: var(--c-surface-2); }
     transition: visibility 0s;
   }
   .pf-search { transition: none; }
+  .pf-tab-ind { transition: none; }
   .pf-menu {
     transform: none;
     transition: opacity 0.15s linear;

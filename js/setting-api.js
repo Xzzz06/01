@@ -314,7 +314,7 @@ function apiCustomPanelHtml() {
 
            '<div class="api-section-label">Presets</div>' +
            '<div class="api-presets"></div>' +
-           '<div class="api-empty" hidden>还没有保存的预设</div>' +
+           '<div class="api-empty" hidden>暂未保存预设</div>' +
          '</section>'
 }
 
