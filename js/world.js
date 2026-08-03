@@ -13,6 +13,9 @@ var WB_KEY_BOOKS = 'world.books'
 var WB_KEY_CATS = 'world.categories'
 
 var WB_NAME_DEFAULT = '未命名世界书'
+// 编辑页顶栏标题：没起名时用它，起了名就换成名字本身
+var WB_TITLE_DEFAULT = '世界设定集'
+var WB_TITLE_EYEBROW = 'MY WORLDBOOK'
 var WB_CAT_DEFAULT = 'DEFAULT'
 var WB_ICON_SIZE = 16
 
@@ -69,8 +72,7 @@ var _wbPanelTabsEl = null
 var _wbPanelBtns = []
 var _wbPanelEls = {}
 var _wbFieldEls = {}             // { name, description }
-var _wbHeroNameEl = null
-var _wbHeroSumEl = null
+var _wbDetailTitleEl = null
 var _wbQuickInputEl = null
 var _wbFlagEls = {}              // { enabled, pinned } 两个开关
 var _wbScopeOptEls = []
@@ -127,6 +129,7 @@ function wbNormalizeEntry(raw) {
   var src = raw && typeof raw === 'object' ? raw : {}
   return {
     id: wbStr(src.id),
+    title: wbStr(src.title),
     keys: wbStr(src.keys),
     content: wbStr(src.content),
     enabled: src.enabled !== false     // 缺失按启用处理，老数据升上来不会整批变灰
@@ -243,14 +246,17 @@ function wbCatOf(b) {
   return b.category.trim() || WB_CAT_DEFAULT
 }
 
-function wbEntryKeysText(b) {
+// 条目没填标题时搜的是默认标题（条目01），跟折叠头上看到的字一致
+function wbEntryText(b) {
   var out = ''
-  for (var i = 0; i < b.entries.length; i++) out += ' ' + b.entries[i].keys
+  for (var i = 0; i < b.entries.length; i++) {
+    out += ' ' + wbEntryTitle(b.entries[i], i) + ' ' + b.entries[i].keys
+  }
   return out
 }
 
 function wbSearchText(b) {
-  return (b.name + ' ' + b.description + ' ' + wbCatOf(b) + wbEntryKeysText(b)).toLowerCase()
+  return (b.name + ' ' + b.description + ' ' + wbCatOf(b) + wbEntryText(b)).toLowerCase()
 }
 
 // 分类来源：DEFAULT 永远第一，其次是自建分类，最后补上书上用到但没入库的分类
@@ -896,17 +902,16 @@ function buildWorldDetail() {
 
   el.innerHTML =
     '<div class="wb-detail-scroll scroll-area">' +
+      // 标题层级与 API 设置页一致：中文大标题在上、英文小标题在下；但整块靠左，不居中
       '<div class="wb-detail-top">' +
         '<button class="wb-back" type="button" aria-label="返回">' +
           '<re-icon icon="chevron-left" size="20"></re-icon>' +
         '</button>' +
+        '<div class="wb-detail-heading">' +
+          '<h1 class="wb-detail-title">' + WB_TITLE_DEFAULT + '</h1>' +
+          '<div class="wb-detail-eyebrow">' + WB_TITLE_EYEBROW + '</div>' +
+        '</div>' +
         '<button class="wb-done" type="button" data-act="done">DONE</button>' +
-      '</div>' +
-
-      '<div class="wb-hero">' +
-        wbCoverHtml(34) +
-        '<h1 class="wb-hero-name">' + WB_NAME_DEFAULT + '</h1>' +
-        '<div class="wb-hero-sum"></div>' +
       '</div>' +
 
       // 左小右大：左边是标识块，右边直接就是输入框 —— 不要再往里套一层白底
@@ -991,8 +996,7 @@ function buildWorldDetail() {
   app.appendChild(el)
 
   _wbDetailScrollEl = el.querySelector('.wb-detail-scroll')
-  _wbHeroNameEl = el.querySelector('.wb-hero-name')
-  _wbHeroSumEl = el.querySelector('.wb-hero-sum')
+  _wbDetailTitleEl = el.querySelector('.wb-detail-title')
   _wbQuickInputEl = el.querySelector('.wb-quick-input')
   _wbPanelTabsEl = el.querySelector('.wb-panel-tabs')
   _wbEntriesEl = el.querySelector('.wb-entries')
@@ -1104,13 +1108,13 @@ function wbDelModalHtml() {
 function wbLeaveModalHtml() {
   return '<div class="api-modal wb-leave-modal" hidden>' +
            '<div class="api-modal-scrim" data-act="leave-cancel"></div>' +
-           '<div class="api-modal-card wb-confirm-card" role="dialog" aria-modal="true" aria-label="保存修改">' +
+           '<div class="api-modal-card wb-confirm-card" role="dialog" aria-modal="true" aria-label="未保存修改">' +
              '<div class="api-modal-head">' +
-               '<h2 class="api-modal-title">保存修改？</h2>' +
+               '<h2 class="api-modal-title">未保存修改</h2>' +
                '<div class="api-modal-eyebrow">UNSAVED CHANGES</div>' +
              '</div>' +
-             '<div class="wb-confirm-text">这本世界书有还没保存的修改，返回后不保存就会丢失。</div>' +
-             '<div class="wb-confirm-btns">' +
+             '<div class="wb-confirm-text">直接返回会丢失这些修改。</div>' +
+             '<div class="wb-confirm-btns wb-leave-btns">' +
                '<button class="api-btn api-btn-primary" type="button" data-act="leave-save">保存并返回</button>' +
                '<button class="api-btn" type="button" data-act="leave-discard">不保存</button>' +
                '<button class="api-btn" type="button" data-act="leave-cancel">取消</button>' +
@@ -1166,16 +1170,21 @@ function wbBindDetailEvents(el) {
 
   _wbQuickInputEl.addEventListener('input', function() {
     _wbDraft.category = this.value
-    wbPaintHero()
   })
 
   // 条目输入走委托并且只定点更新折叠头 —— 重渲染整列表会丢焦点
   _wbEntriesEl.addEventListener('input', function(e) {
     var t = e.target
+    var nid = t.getAttribute('data-etitle')
+    if (nid) {
+      var ne = wbFindEntry(nid)
+      if (ne) { ne.title = t.value; wbPaintEntryHead(nid) }
+      return
+    }
     var kid = t.getAttribute('data-ekey')
     if (kid) {
       var ke = wbFindEntry(kid)
-      if (ke) { ke.keys = t.value; wbPaintEntryHead(kid) }
+      if (ke) ke.keys = t.value      // 关键词不再上折叠头，改这里不用重画
       return
     }
     var cid = t.getAttribute('data-econtent')
@@ -1189,7 +1198,7 @@ function wbBindDetailEvents(el) {
 function wbBindField(key, input) {
   input.addEventListener('input', function() {
     _wbDraft[key] = input.value
-    if (key === 'name') wbPaintHero()
+    if (key === 'name') wbPaintDetailTitle()
   })
 }
 
@@ -1279,7 +1288,7 @@ function wbFillDetail() {
   _wbFieldEls.description.value = _wbDraft.description
   _wbQuickInputEl.value = _wbDraft.category
 
-  wbPaintHero()
+  wbPaintDetailTitle()
   wbPaintFlags()
   wbPaintScope()
   wbRenderEntries()
@@ -1290,10 +1299,9 @@ function wbFillDetail() {
   _wbClean = wbSnapshot(_wbDraft)     // 从这一刻起才算「改过」
 }
 
-// 名称与分类实时同步顶部标题和摘要，清空各自回到默认文案
-function wbPaintHero() {
-  _wbHeroNameEl.textContent = _wbDraft.name.trim() || WB_NAME_DEFAULT
-  _wbHeroSumEl.textContent = wbCatOf(_wbDraft) + ' · ' + _wbDraft.entries.length + ' 条'
+// 名称实时同步顶栏标题，清空回到默认文案；英文那行固定不变
+function wbPaintDetailTitle() {
+  _wbDetailTitleEl.textContent = _wbDraft.name.trim() || WB_TITLE_DEFAULT
 }
 
 function wbPaintFlags() {
@@ -1417,6 +1425,22 @@ function wbFindEntry(id) {
   return null
 }
 
+function wbEntryIndex(id) {
+  if (!_wbDraft) return 0
+  for (var i = 0; i < _wbDraft.entries.length; i++) {
+    if (_wbDraft.entries[i].id === id) return i
+  }
+  return 0
+}
+
+// 默认标题按当前位置算，不入库：删掉一条后面自动顺延，不会留下空号
+function wbEntryTitle(e, i) {
+  var t = e.title.trim()
+  if (t) return t
+  var n = i + 1
+  return '条目' + (n < 10 ? '0' + n : n)
+}
+
 function wbRenderEntries() {
   // innerHTML 赋值那一瞬间容器高度归零，浏览器会把滚动位置夹回顶部，渲染完必须还原 ——
   // 否则展开 / 收起一条就跳回页首
@@ -1426,15 +1450,14 @@ function wbRenderEntries() {
   for (var i = 0; i < list.length; i++) {
     var e = list[i]
     var id = escapeHtml(e.id)
-    var keys = e.keys.trim()
     html +=
       '<div class="wb-entry' + (e.id === _wbOpenEntry ? ' is-open' : '') + '" data-entry="' + id + '">' +
         '<div class="wb-entry-head" role="button" tabindex="0" data-eopen="' + id + '"' +
              ' aria-expanded="' + (e.id === _wbOpenEntry ? 'true' : 'false') + '">' +
           '<span class="wb-entry-no">' + (i + 1) + '</span>' +
           '<span class="wb-entry-text">' +
-            '<span class="wb-entry-keys' + (keys ? '' : ' is-empty') + '">' +
-              escapeHtml(keys || '未设置关键词') +
+            '<span class="wb-entry-title' + (e.title.trim() ? '' : ' is-empty') + '">' +
+              escapeHtml(wbEntryTitle(e, i)) +
             '</span>' +
             '<span class="wb-entry-sub">' + wbEntrySub(e) + '</span>' +
           '</span>' +
@@ -1443,6 +1466,14 @@ function wbRenderEntries() {
           '<span class="wb-entry-chevron"><re-icon icon="chevron-down" size="14"></re-icon></span>' +
         '</div>' +
         '<div class="wb-entry-body">' +
+          '<div class="wb-field">' +
+            '<div class="wb-field-label">标题</div>' +
+            '<div class="api-field-box">' +
+              '<input class="api-input" type="text" data-etitle="' + id + '" aria-label="标题"' +
+                    ' placeholder="给这条设定起个名字，方便自己找"' +
+                    ' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">' +
+            '</div>' +
+          '</div>' +
           '<div class="wb-field">' +
             '<div class="wb-field-label">关键词</div>' +
             '<div class="api-field-box">' +
@@ -1464,7 +1495,12 @@ function wbRenderEntries() {
   }
   _wbEntriesEl.innerHTML = html
 
-  // 关键词和正文用 DOM 赋值，不拼进 HTML 属性：正文可能很长、带换行
+  // 标题、关键词和正文用 DOM 赋值，不拼进 HTML 属性：正文可能很长、带换行
+  var titleEls = _wbEntriesEl.querySelectorAll('[data-etitle]')
+  for (var n = 0; n < titleEls.length; n++) {
+    var ne = wbFindEntry(titleEls[n].getAttribute('data-etitle'))
+    if (ne) titleEls[n].value = ne.title
+  }
   var keyEls = _wbEntriesEl.querySelectorAll('[data-ekey]')
   for (var k = 0; k < keyEls.length; k++) {
     var ke = wbFindEntry(keyEls[k].getAttribute('data-ekey'))
@@ -1490,12 +1526,11 @@ function wbPaintEntryHead(id) {
   var row = wbByAttr(_wbEntriesEl, 'data-entry', id)
   if (!row) return
 
-  var keys = e.keys.trim()
-  var keysEl = row.querySelector('.wb-entry-keys')
-  if (keysEl) {
-    keysEl.textContent = keys || '未设置关键词'
-    if (keys) keysEl.classList.remove('is-empty')
-    else keysEl.classList.add('is-empty')
+  var titleEl = row.querySelector('.wb-entry-title')
+  if (titleEl) {
+    titleEl.textContent = wbEntryTitle(e, wbEntryIndex(id))
+    if (e.title.trim()) titleEl.classList.remove('is-empty')
+    else titleEl.classList.add('is-empty')
   }
 
   var subEl = row.querySelector('.wb-entry-sub')
@@ -1522,13 +1557,12 @@ function wbToggleEntryEnabled(id) {
 }
 
 function wbAddEntry() {
-  var e = { id: wbNewId('e'), keys: '', content: '', enabled: true }
+  var e = { id: wbNewId('e'), title: '', keys: '', content: '', enabled: true }
   _wbDraft.entries.push(e)
   _wbOpenEntry = e.id                 // 新增的直接展开，用户不用再点一次
   wbRenderEntries()
-  wbPaintHero()
 
-  var input = wbByAttr(_wbEntriesEl, 'data-ekey', e.id)
+  var input = wbByAttr(_wbEntriesEl, 'data-etitle', e.id)
   wbFocus(input)
 }
 
@@ -1540,7 +1574,6 @@ function wbDeleteEntry(id) {
   _wbDraft.entries = next
   if (_wbOpenEntry === id) _wbOpenEntry = ''
   wbRenderEntries()
-  wbPaintHero()
 }
 
 // ===== 分页切换：只切内容面板，不重建页面、不丢草稿 =====

@@ -552,13 +552,45 @@ button.wb-menu-item:active .wb-menu-ico {
 }
 .wb-actions .api-btn { gap: 8px; }
 
-/* ===== 编辑页顶栏 ===== */
+/* ===== 编辑页顶栏：返回键 + 左对齐标题 + DONE，同一行 ===== */
+/* 标题上下两层照抄 API 设置页的字号层级，只是这里整块靠左 */
 .wb-detail-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
   min-height: 40px;
+}
+
+/* 占满中间的剩余宽度并左对齐 —— 不要改成居中 */
+.wb-detail-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 世界书名可以很长，必须截断，否则会把 DONE 挤出屏幕 */
+.wb-detail-title {
+  margin: 0;
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wb-detail-eyebrow {
+  margin-top: 5px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wb-done {
@@ -576,45 +608,6 @@ button.wb-menu-item:active .wb-menu-ico {
 .wb-done:active {
   transform: scale(0.96);
   background: var(--press-bg);
-}
-
-/* ===== 编辑页主视觉 ===== */
-.wb-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 14px;
-}
-
-/* 页面上最大的一本，阴影抬一档才压得住；书脊那条内阴影要跟着一起写，不能只写投影 */
-.wb-hero .wb-cover {
-  width: 96px;
-  height: 128px;
-  --cover-r: 10px;
-  --cover-spine: 6px;
-  box-shadow: var(--shadow-md), inset var(--cover-spine) 0 0 var(--c-surface);
-}
-
-/* 走全局二级页标题层级，不另起一套字号 */
-.wb-hero-name {
-  margin: 14px 0 0;
-  max-width: 100%;
-  font-size: var(--page-title-size);
-  font-weight: var(--page-title-weight);
-  line-height: 1.2;
-  letter-spacing: 0.01em;
-  color: var(--c-text);
-  word-break: break-word;
-  text-align: center;
-}
-
-.wb-hero-sum {
-  margin-top: 4px;
-  max-width: 100%;
-  font-size: var(--row-value-size);
-  color: var(--c-sub);
-  word-break: break-word;
-  text-align: center;
 }
 
 /* ===== 快捷区：左小右大，与角色编辑页的分组区同一套做法 ===== */
@@ -844,7 +837,7 @@ button.wb-menu-item:active .wb-menu-ico {
 }
 
 /* 两行是 span（外层折叠头里套着 button，只能用 span 撑结构），必须自己转成块级 */
-.wb-entry-keys {
+.wb-entry-title {
   display: block;
   font-size: var(--row-name-size);
   font-weight: var(--row-name-weight);
@@ -854,7 +847,8 @@ button.wb-menu-item:active .wb-menu-ico {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.wb-entry-keys.is-empty { color: var(--c-hint); }
+/* 没填标题时头上是「条目01」这种默认名，颜色压一档，跟自己起的名字区分开 */
+.wb-entry-title.is-empty { color: var(--c-hint); }
 
 .wb-entry-sub {
   display: block;
@@ -956,7 +950,18 @@ button.wb-menu-item:active .wb-menu-ico {
   flex-direction: column;
   gap: 8px;
 }
-.wb-confirm-btns .api-btn { width: 100%; }
+/* 必须清 flex：.api-btn 的 flex:1 把 flex-basis 压成 0，竖排时高度会塌成文字高 */
+.wb-confirm-btns .api-btn {
+  flex: none;
+  width: 100%;
+}
+
+/* 三选一时主操作独占一行、另两个并排，竖着堆三颗太高 */
+.wb-leave-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.wb-leave-btns .api-btn-primary { grid-column: 1 / -1; }
 
 /* .api-modal-card 是纵向 flex，两个块的外边距不会合并，这里只留一处间距 */
 .wb-newcat-card .api-btn-row { margin-top: 16px; }

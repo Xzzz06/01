@@ -1078,13 +1078,13 @@ function pfDelModalHtml() {
 function pfConfirmModalHtml() {
   return '<div class="api-modal pf-confirm-modal" hidden>' +
            '<div class="api-modal-scrim" data-act="confirm-cancel"></div>' +
-           '<div class="api-modal-card pf-confirm-card" role="dialog" aria-modal="true" aria-label="保存修改">' +
+           '<div class="api-modal-card pf-confirm-card" role="dialog" aria-modal="true" aria-label="未保存修改">' +
              '<div class="api-modal-head">' +
-               '<h2 class="api-modal-title">保存修改？</h2>' +
+               '<h2 class="api-modal-title">未保存修改</h2>' +
                '<div class="api-modal-eyebrow">UNSAVED CHANGES</div>' +
              '</div>' +
-             '<div class="pf-confirm-text">这个角色有还没保存的修改，返回后不保存就会丢失。</div>' +
-             '<div class="pf-confirm-btns">' +
+             '<div class="pf-confirm-text">直接返回会丢失这些修改。</div>' +
+             '<div class="pf-confirm-btns pf-leave-btns">' +
                '<button class="api-btn api-btn-primary" type="button" data-act="confirm-save">保存并返回</button>' +
                '<button class="api-btn" type="button" data-act="confirm-discard">不保存</button>' +
                '<button class="api-btn" type="button" data-act="confirm-cancel">取消</button>' +

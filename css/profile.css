@@ -928,7 +928,18 @@ button.pf-menu-item:active .pf-menu-ico {
   flex-direction: column;
   gap: 8px;
 }
-.pf-confirm-btns .api-btn { width: 100%; }
+/* 必须清 flex：.api-btn 的 flex:1 把 flex-basis 压成 0，竖排时高度会塌成文字高 */
+.pf-confirm-btns .api-btn {
+  flex: none;
+  width: 100%;
+}
+
+/* 三选一时主操作独占一行、另两个并排，竖着堆三颗太高 */
+.pf-leave-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.pf-leave-btns .api-btn-primary { grid-column: 1 / -1; }
 
 /* 减弱动态效果：取消横向位移与按压缩放，折叠与弹窗直接显示 / 隐藏 */
 @media (prefers-reduced-motion: reduce) {
