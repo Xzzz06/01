@@ -1,0 +1,988 @@
+/* ===== 世界书页 ===== */
+/* 设计与理由见 PROMPT/10_世界书页.md
+ * 本文件禁止出现 will-change；backdrop-filter 只允许用在加号菜单的模糊层。
+ * 颜色一律取 base.css 已有变量；弹窗骨架（.api-modal / .api-model）、分段卡槽（.api-tabs）、
+ * 输入框（.api-field-box / .api-input）、按钮（.api-btn）全部复用 css/setting-api.css，这里只写差异。 */
+.wb-page,
+.wb-detail {
+  /* 这一组是 setting-api.css 里 .api-modal / .api-model / .api-btn / .api-field-box
+   * 读的变量，值必须与 .api-page 保持一致，否则复用过来的弹窗会塌成没圆角、没底色的一坨 */
+  --card-radius: 20px;
+  --card-radius-in: 5px;
+  --card-gap: 2px;
+  --card-bg: var(--c-surface-2);
+  --press-bg: var(--c-surface-3);
+  --field-h: 48px;
+  --btn-h: 46px;
+
+  position: absolute;            /* #app 是 position: relative，见 base.css */
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);  /* 必须不透明，完整盖住后面的页面 */
+
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s linear 0.3s;
+}
+
+.wb-page.show,
+.wb-detail.show {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s;
+}
+
+.wb-page { z-index: 10; }        /* 与设置页 / 档案页同级，三者不会同时打开 */
+.wb-detail { z-index: 11; }      /* 二级页：盖住列表页，低于 .ap-modal 的 12 */
+
+/* hidden 属性来自 UA 样式表，本文件里的 display 声明会盖掉它，补一条更高优先级的 */
+.wb-page [hidden],
+.wb-detail [hidden] { display: none; }
+
+/* ===== 滚动区 ===== */
+.wb-scroll,
+.wb-detail-scroll {
+  flex: 1;                       /* .scroll-area 不带 flex: 1 */
+  min-height: 0;
+  overflow-x: hidden;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(12px + var(--sat)) 20px calc(32px + var(--sab));
+}
+
+/* 视觉尺寸沿用设置页的 40px，靶区用伪元素补到 44px。
+ * 不要直接把这些按钮改成 44px —— 那会和设置页 / API 页 / 档案页的顶栏对不齐 */
+.wb-back,
+.wb-round,
+.wb-done {
+  position: relative;
+}
+.wb-back::after,
+.wb-round::after,
+.wb-done::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+.wb-back::after,
+.wb-round::after { width: 44px; }
+
+/* ===== 返回键：与设置页 / 档案页同参数 ===== */
+.wb-back {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-text);          /* reicon 内部用 currentColor */
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.wb-back:active {
+  transform: scale(0.88);
+  background: var(--press-bg);
+}
+
+/* ===== 顶栏：返回键 + 左对齐标题 + 右两个圆钮，同一行 ===== */
+.wb-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 标题占满中间的剩余宽度并左对齐 —— 不要改成居中 */
+.wb-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.wb-eyebrow {
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wb-title {
+  margin: 6px 0 0;
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);          /* 主文字用深灰，不用纯黑 */
+}
+
+.wb-head-btns {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 320 宽的机器上英文小标题和圆钮同排会差几个像素，只在这一档收字距 */
+@media (max-width: 360px) {
+  .wb-eyebrow { letter-spacing: 0.12em; }
+}
+
+.wb-round {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.wb-round:active {
+  transform: scale(0.9);
+  background: var(--press-bg);
+}
+
+/* ===== 可折叠搜索行 ===== */
+/* 页面流内的折叠项，不是覆盖层：收起时高度真的是 0，不占位 */
+.wb-search {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.wb-search.is-open {
+  max-height: 76px;
+  opacity: 1;
+}
+
+.wb-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  margin-top: 16px;
+  padding: 0 18px;
+  border-radius: 24px;
+  background: var(--c-surface-2);
+  color: var(--c-hint);          /* 放大镜图标颜色 */
+}
+
+.wb-search-box input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  color: var(--c-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.wb-search-box input::placeholder { color: var(--c-hint); }
+/* 去掉 Safari 给 type="search" 附加的原生装饰与清除按钮 */
+.wb-search-box input::-webkit-search-decoration,
+.wb-search-box input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* ===== 加号菜单：与档案页同款 ===== */
+.wb-menu-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: none;              /* 只用来接住「点菜单外」，不做视觉遮罩 */
+}
+
+/* 模糊底层内容防止文字重叠；top 由 JS 定在顶栏底部，顶栏不模糊 */
+.wb-menu-blur {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  pointer-events: none;          /* 点击穿给 scrim */
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.16s var(--ease);
+}
+.wb-menu-blur.show { opacity: 1; }
+
+.wb-menu {
+  position: absolute;
+  z-index: 5;
+  min-width: 160px;
+  opacity: 0;
+  transform: scale(0.94);
+  transform-origin: top right;
+  transition: opacity 0.16s var(--ease), transform 0.16s var(--ease);
+}
+.wb-menu.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 每行：文字在左、40px 圆形图标钮在右，整体靠右对齐，圆钮正对顶栏加号 */
+.wb-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  width: 100%;
+  padding: 0;                    /* button 行不清掉默认内边距会和 div 行错位 */
+  text-align: right;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+}
+.wb-menu-item + .wb-menu-item { margin-top: 14px; }
+
+.wb-menu-ico {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+button.wb-menu-item:active .wb-menu-ico {
+  transform: scale(0.9);
+  background: var(--press-bg);
+}
+
+/* 导入 / 导出 JSON 本期不绑任何事件，用最弱字色标明它现在不响应 */
+.wb-menu-item.is-idle { color: var(--c-hint); }
+.wb-menu-item.is-idle .wb-menu-ico { color: var(--c-hint); }
+
+/* ===== 区块标题 ===== */
+/* 「世界书列表」「置顶」是同一档中文小标题，不是英文分组标签 */
+.wb-sec {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 24px 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--c-text);
+}
+.wb-sec re-icon { color: var(--c-accent-dark); }
+
+/* ===== 四项选择行 ===== */
+/* 上下两层结构与语音页的 .voice-tab 同款：英文小字在上、中文名在下。
+ * 前三项按使用范围筛选、共用滑块；第四项是分类，开弹窗、不参与滑块 */
+.wb-seg {
+  --seg-pad: 4px;
+  --seg-n: 4;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--seg-n), 1fr);
+  height: 58px;
+  margin-top: 24px;
+  padding: var(--seg-pad);
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+}
+
+/* 滑块压在按钮下面，按钮背景保持透明，文字才不会被盖住 */
+.wb-seg-ind {
+  position: absolute;
+  z-index: 0;
+  top: var(--seg-pad);
+  bottom: var(--seg-pad);
+  left: var(--seg-pad);
+  width: calc((100% - var(--seg-pad) * 2) / var(--seg-n));
+  border-radius: var(--r-pill);
+  background: var(--c-accent-dark);
+  /* 只动 transform：切背景色过渡在移动端是每帧重新栅格化 */
+  transform: translateX(calc(var(--wb-seg-i, 0) * 100%));
+  transition: transform 0.26s var(--ease);
+}
+
+.wb-seg-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 100%;
+  min-width: 0;
+  padding: 0 4px;
+  border-radius: var(--r-pill);
+  transition: color var(--dur) var(--ease);
+}
+
+/* 上层：计数 / 固定标签。参数与 .voice-tab-eyebrow 一致 */
+.wb-seg-top {
+  max-width: 100%;
+  /* letter-spacing 会在最后一个字母后面也加一份，居中文本要补等量左边距抵消 */
+  margin-left: 0.16em;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  color: var(--c-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  transition: color var(--dur) var(--ease);
+}
+
+.wb-seg-name {
+  max-width: 100%;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.2;
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--dur) var(--ease);
+}
+
+/* 选中项压在深灰滑块上：中文反白，上层小字降一档，别和中文抢 */
+.wb-seg-btn.is-active .wb-seg-name { color: var(--c-bg); }
+.wb-seg-btn.is-active .wb-seg-top { color: var(--c-surface-2); }
+
+/* 分类已选：滑块归前三项，这里只把文字提亮表示条件生效 */
+.wb-seg-cat.is-on .wb-seg-name { color: var(--c-text); }
+.wb-seg-cat:active .wb-seg-name { color: var(--c-text); }
+
+/* ===== 书本封面块 ===== */
+/* 3:4 开本，两块纯色：封面一档、书脊一档，中间不画分界线。
+ * 全部用 base.css 已有变量，只有明暗没有色相。
+ * 三种尺寸只改 --cover-r / --cover-spine 两个变量，不复制三套画法 */
+.wb-cover {
+  --cover-r: 8px;
+  --cover-spine: 5px;
+
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 图标要在「封面」这块的正中，不是连书脊一起居中 */
+  padding-left: var(--cover-spine);
+  /* 书脊侧圆角是书口侧的一半，跟实体书一致 */
+  border-radius: calc(var(--cover-r) / 2) var(--cover-r) var(--cover-r) calc(var(--cover-r) / 2);
+  border: 1px solid var(--c-border);
+  /* 整块封面一个纯色，不做渐变 */
+  background: var(--c-surface-3);
+  /* 书脊是内嵌的一条整高浅色带，直接压在封面上 —— 两块颜色相接，中间不画任何分界线。
+   * 内阴影被裁在边框以内，所以书脊不会盖住那圈发丝边 */
+  box-shadow: var(--shadow-sm), inset var(--cover-spine) 0 0 var(--c-surface);
+  color: var(--c-accent-dark);   /* reicon 内部用 currentColor */
+}
+
+/* ===== 启用开关 ===== */
+/* 本体 44×26，靶区由 ::before 上下撑到 44px */
+.wb-switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-3);
+  transition: background var(--dur) var(--ease);
+}
+.wb-switch::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -9px;
+  bottom: -9px;
+}
+.wb-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.22s var(--ease);
+}
+.wb-switch[aria-pressed="true"] { background: var(--c-accent-dark); }
+.wb-switch[aria-pressed="true"]::after { transform: translateX(18px); }
+
+/* ===== 元信息行 ===== */
+.wb-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 8px;
+  font-size: var(--row-value-size);
+  line-height: 1.35;
+  color: var(--c-sub);
+}
+.wb-meta re-icon {
+  flex: none;
+  color: var(--c-accent-dark);
+}
+.wb-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wb-meta.is-empty { color: var(--c-hint); }
+.wb-meta.is-empty re-icon { color: var(--c-hint); }
+
+/* 跟在中文后面的英文标签：与全站英文小字同一档，让中文先被读到 */
+.wb-meta-en {
+  margin-left: 6px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.12em;
+  color: var(--c-hint);
+}
+
+/* ===== 分组列表 ===== */
+.wb-group + .wb-group { margin-top: 18px; }
+
+.wb-group-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px 4px;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+.wb-group-label re-icon { color: var(--c-hint); }
+.wb-group-count { color: var(--c-hint); }
+
+/* 一整块卡片：行间只留一条极窄透明缝，缝两侧小圆角，整组外角才是大圆角 */
+.wb-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.wb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+/* 这一组不参与筛选隐藏（筛掉的行直接不渲染），圆角可以交给 :first-child / :last-child */
+.wb-row:first-child {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.wb-row:last-child {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+.wb-row:active { background: var(--press-bg); }
+
+.wb-row .wb-cover {
+  width: 45px;
+  height: 60px;
+  --cover-r: 5px;
+  --cover-spine: 3px;
+}
+
+.wb-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.wb-row-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb-row .wb-meta { margin-top: 5px; }
+
+/* 未启用的书整行压暗，但开关本身保持清晰 */
+.wb-row.is-off .wb-cover,
+.wb-row.is-off .wb-row-body {
+  opacity: 0.5;
+}
+
+/* ===== 空状态与底部动作 ===== */
+.wb-empty {
+  padding: 48px 24px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--c-hint);
+  white-space: pre-line;         /* 空状态文案里的换行要真的换行 */
+}
+
+.wb-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.wb-actions .api-btn { gap: 8px; }
+
+/* ===== 编辑页顶栏 ===== */
+.wb-detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.wb-done {
+  min-width: 72px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-name-size);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--c-text);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.wb-done:active {
+  transform: scale(0.96);
+  background: var(--press-bg);
+}
+
+/* ===== 编辑页主视觉 ===== */
+.wb-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 14px;
+}
+
+/* 页面上最大的一本，阴影抬一档才压得住；书脊那条内阴影要跟着一起写，不能只写投影 */
+.wb-hero .wb-cover {
+  width: 96px;
+  height: 128px;
+  --cover-r: 10px;
+  --cover-spine: 6px;
+  box-shadow: var(--shadow-md), inset var(--cover-spine) 0 0 var(--c-surface);
+}
+
+/* 走全局二级页标题层级，不另起一套字号 */
+.wb-hero-name {
+  margin: 14px 0 0;
+  max-width: 100%;
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--c-text);
+  word-break: break-word;
+  text-align: center;
+}
+
+.wb-hero-sum {
+  margin-top: 4px;
+  max-width: 100%;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+  word-break: break-word;
+  text-align: center;
+}
+
+/* ===== 快捷区：左小右大，与角色编辑页的分组区同一套做法 ===== */
+.wb-quick {
+  display: flex;
+  align-items: stretch;
+  gap: var(--card-gap);
+  margin-top: 22px;
+}
+
+.wb-quick-left {
+  flex: none;
+  width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  /* 左侧外角大、贴着输入框的右侧两角小 */
+  border-radius: var(--card-radius) var(--card-radius-in) var(--card-radius-in) var(--card-radius);
+  background: var(--c-surface-2);
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+.wb-quick-left re-icon { color: var(--c-accent-dark); }
+
+/* 输入框直接就是这个块本身，里面不要再套一层白底 */
+.wb-quick-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: var(--card-radius-in) var(--card-radius) var(--card-radius) var(--card-radius-in);
+  background: var(--c-surface-2);
+}
+
+.wb-quick-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  color: var(--c-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.wb-quick-input::placeholder { color: var(--c-hint); }
+
+/* ===== 分页选择器：排在快捷区下方，跟着页面一起滚 ===== */
+.wb-panel-tabs { margin-top: 22px; }
+.wb-panel-tabs .api-tab {
+  font-size: var(--row-value-size);
+  letter-spacing: 0.04em;
+}
+
+/* ===== 分组小标题：与设置页 / API 页同参数 ===== */
+.wb-label {
+  margin: 26px 0 10px;
+  padding-left: 4px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+/* ===== 面板与字段 ===== */
+.wb-panel { display: none; }
+.wb-panel.is-active { display: block; }
+
+.wb-field { margin-bottom: 12px; }
+
+.wb-field-label {
+  display: block;
+  margin: 0 0 8px 4px;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+
+.wb-area {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: var(--card-radius);
+  background: var(--c-surface-2);
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--c-text);
+  resize: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.wb-area::placeholder { color: var(--c-hint); }
+.wb-area-lg { min-height: 170px; }
+
+/* ===== 开关行 ===== */
+.wb-switch-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.wb-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+}
+.wb-switch-row:first-child {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.wb-switch-row:last-child {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+
+.wb-switch-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.wb-switch-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+}
+
+.wb-switch-sub {
+  margin-top: 3px;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+}
+
+/* ===== 选项行（适用范围 / 绑定角色）===== */
+/* 复用 .api-model 的行样式，这一组不参与筛选，圆角交给 :first-child / :last-child */
+.wb-opts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+.wb-opts .api-model:first-child {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.wb-opts .api-model:last-child {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+
+.wb-opt-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--row-value-size);
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--c-sub);
+}
+
+/* ===== 条目手风琴 ===== */
+.wb-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.wb-entry {
+  overflow: hidden;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+}
+/* 展开的这条不换底色：输入框与卡片同底、不分边界是可以接受的，
+ * 为了让输入框显形而整块翻白，代价是页面上多一块最亮的区域，不划算 */
+.wb-entry:first-child {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.wb-entry:last-child {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+
+/* 折叠头里套着开关按钮，本体只能是 div[role=button]，所以 cursor 要自己写 */
+.wb-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wb-entry-no {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-3);
+  font-size: var(--label-size);
+  color: var(--c-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-entry-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 两行是 span（外层折叠头里套着 button，只能用 span 撑结构），必须自己转成块级 */
+.wb-entry-keys {
+  display: block;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb-entry-keys.is-empty { color: var(--c-hint); }
+
+.wb-entry-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+}
+
+/* 展开箭头：整个头是按钮，这里只做视觉 */
+.wb-entry-chevron {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--c-hint);
+  transition: transform 0.22s var(--ease);
+}
+.wb-entry.is-open .wb-entry-chevron { transform: rotate(180deg); }
+
+/* 折叠用 display 切换而不是高度动画：条目正文高度不定，动画只会抖 */
+.wb-entry-body { display: none; }
+.wb-entry.is-open .wb-entry-body {
+  display: flex;                 /* 纵向 flex：删除按钮才能靠 align-self 收到右边 */
+  flex-direction: column;
+  padding: 0 14px 14px;
+}
+
+/* .api-btn 自带 flex: 1，在纵向 flex 里会被拉高，这里必须写死 flex: none */
+.wb-entry-del {
+  flex: none;
+  align-self: flex-end;
+  width: auto;
+  min-width: 116px;
+  margin-top: 2px;
+  padding: 0 18px;
+  background: var(--c-surface-3);
+}
+
+.wb-add-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--btn-h);
+  margin-top: 12px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+  transition: background var(--dur) var(--ease);
+}
+.wb-add-entry:active { background: var(--press-bg); }
+
+/* ===== 删除整本 ===== */
+.wb-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--btn-h);
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-sub);           /* 全站严格灰阶，危险动作只靠文案区分，不用红色 */
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.wb-danger:active {
+  background: var(--c-accent-dark);
+  color: var(--c-bg);
+}
+
+/* ===== 弹窗差异 ===== */
+/* 两个按钮并排：公共样式给的是单个按钮占满整行 */
+.wb-modal-foot {
+  display: flex;
+  gap: 12px;
+}
+.wb-modal-foot .api-btn {
+  flex: 1;
+  width: auto;
+}
+
+.wb-confirm-card { max-width: 300px; }
+
+.wb-confirm-text {
+  padding-bottom: 16px;
+  text-align: center;
+  font-size: var(--row-value-size);
+  line-height: 1.5;
+  color: var(--c-sub);
+}
+
+.wb-confirm-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wb-confirm-btns .api-btn { width: 100%; }
+
+/* .api-modal-card 是纵向 flex，两个块的外边距不会合并，这里只留一处间距 */
+.wb-newcat-card .api-btn-row { margin-top: 16px; }
+
+/* 减弱动态效果：取消横向位移与按压缩放，折叠与弹窗直接显示 / 隐藏 */
+@media (prefers-reduced-motion: reduce) {
+  .wb-page,
+  .wb-page.show,
+  .wb-detail,
+  .wb-detail.show {
+    transform: none;
+    transition: visibility 0s;
+  }
+  .wb-search { transition: none; }
+  .wb-seg-ind { transition: none; }
+  .wb-switch::after { transition: none; }
+  .wb-entry-chevron { transition: none; }
+  .wb-menu {
+    transform: none;
+    transition: opacity 0.15s linear;
+  }
+  .wb-menu.show { transform: none; }
+  .wb-back { transition: background var(--dur) var(--ease); }
+  .wb-back:active,
+  .wb-round:active,
+  .wb-done:active {
+    transform: none;
+  }
+}

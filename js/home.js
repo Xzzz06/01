@@ -101,6 +101,10 @@ function openApp(appId) {
     openProfilePage()             // profile.js 提供
     return
   }
+  if (appId === 'world') {
+    openWorldPage()               // world.js 提供
+    return
+  }
 
   showDevBanner(app.name)
 }

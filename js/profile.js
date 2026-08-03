@@ -89,6 +89,9 @@ var _pfGenderPickEl = null
 var _pfAccountErrEl = null
 var _pfGenderModalEl = null
 var _pfGenderListEl = null
+var _pfDelSecEl = null           // PROFILE 分页底部的 MANAGE 区块，新建态整块收起
+var _pfDelModalEl = null
+var _pfDelNameEl = null
 var _pfConfirmEl = null
 
 // ===== 数据归一化 =====
@@ -296,6 +299,16 @@ function buildProfilePage() {
 
       '<div class="pf-grid"></div>' +
       '<div class="pf-empty" hidden></div>' +
+
+      // 与加号菜单前两项是同一批动作的两个入口，行为必须完全一致
+      '<div class="pf-actions">' +
+        '<button class="api-btn" type="button" data-act="new-char">' +
+          '<re-icon icon="plus" size="' + PF_ICON_SIZE + '"></re-icon>新建 CHAR' +
+        '</button>' +
+        '<button class="api-btn api-btn-primary" type="button" data-act="new-npc">' +
+          '<re-icon icon="plus" size="' + PF_ICON_SIZE + '"></re-icon>新建 NPC' +
+        '</button>' +
+      '</div>' +
     '</div>' +
 
     // 菜单、遮罩与弹窗都与 .pf-scroll 平级：放进滚动区里会跟着页面一起滚
@@ -826,13 +839,14 @@ function pfRenderList() {
   }
   _pfGridEl.innerHTML = html
 
-  _pfEmptyEl.textContent = pfEmptyText()
-  _pfEmptyEl.hidden = list.length > 0
+  var empty = pfEmptyText()
+  _pfEmptyEl.textContent = empty
+  _pfEmptyEl.hidden = !empty || list.length > 0     // 文案为空时连占位高度也不留
 }
 
 function pfEmptyText() {
   if (_pfQuery.trim()) return '没有匹配的角色'
-  if (!_pfChars.length) return '还没有角色，点右上角 + 新建'
+  if (!_pfChars.length) return ''                   // 一个角色都没有：底部两颗新建按钮已经说清楚了
   if (_pfTab === 'special') return '还没有收藏的角色'
   if (_pfTab === 'char') return '还没有 CHAR 角色'
   if (_pfTab === 'npc') return '还没有 NPC 角色'
@@ -927,6 +941,12 @@ function buildProfileDetail() {
           '<textarea class="pf-area" data-field="profileDescription" rows="6"' +
                    ' aria-label="角色描述" placeholder="描述角色性格、背景、说话方式……"></textarea>' +
         '</div>' +
+        '<div class="pf-delete-sec">' +
+          '<div class="pf-section-label">Manage</div>' +
+          '<button class="pf-danger" type="button" data-act="del-open">' +
+            '<re-icon icon="trash6" size="' + PF_ICON_SIZE + '"></re-icon>删除这个角色' +
+          '</button>' +
+        '</div>' +
       '</section>' +
 
       '<section class="pf-panel" data-pfpanel="account" role="tabpanel" aria-label="Account">' +
@@ -949,6 +969,7 @@ function buildProfileDetail() {
     '</div>' +
 
     pfGenderModalHtml() +
+    pfDelModalHtml() +
     pfConfirmModalHtml()
 
   app.appendChild(el)
@@ -964,6 +985,9 @@ function buildProfileDetail() {
   _pfTabsEl = el.querySelector('.pf-panel-tabs')
   _pfGenderModalEl = el.querySelector('.pf-gender-modal')
   _pfGenderListEl = el.querySelector('.pf-gender-modal .api-modal-list')
+  _pfDelSecEl = el.querySelector('.pf-delete-sec')
+  _pfDelModalEl = el.querySelector('.pf-del-modal')
+  _pfDelNameEl = el.querySelector('.pf-del-name')
   _pfConfirmEl = el.querySelector('.pf-confirm-modal')
 
   _pfPanelEls = {
@@ -1030,6 +1054,24 @@ function pfPanelTabHtml(id, name, active) {
            ' aria-selected="' + (active ? 'true' : 'false') + '" data-pftab="' + id + '">' +
            '<span>' + name + '</span>' +
          '</button>'
+}
+
+// 删除确认：角色名在打开弹窗时才填，不能在这里拼进静态骨架
+function pfDelModalHtml() {
+  return '<div class="api-modal pf-del-modal" hidden>' +
+           '<div class="api-modal-scrim" data-act="del-cancel"></div>' +
+           '<div class="api-modal-card pf-confirm-card" role="dialog" aria-modal="true" aria-label="删除角色">' +
+             '<div class="api-modal-head">' +
+               '<h2 class="api-modal-title">删除角色？</h2>' +
+               '<div class="api-modal-eyebrow">DELETE</div>' +
+             '</div>' +
+             '<div class="pf-confirm-text">「<span class="pf-del-name"></span>」的档案会被删除，且无法恢复。</div>' +
+             '<div class="pf-confirm-btns">' +
+               '<button class="api-btn api-btn-primary" type="button" data-act="del-confirm">删除</button>' +
+               '<button class="api-btn" type="button" data-act="del-cancel">取消</button>' +
+             '</div>' +
+           '</div>' +
+         '</div>'
 }
 
 // 返回时如果有未保存的修改，就在页面中央问一次，不用原生 confirm()
@@ -1112,6 +1154,9 @@ function pfHandleDetailAction(act) {
   if (act === 'avatar') { pfPickAvatar(); return }
   if (act === 'pick-gender') { pfOpenGenderModal(); return }
   if (act === 'gender-close') { pfCloseGenderModal(); return }
+  if (act === 'del-open') { pfOpenDelModal(); return }
+  if (act === 'del-cancel') { pfCloseDelModal(); return }
+  if (act === 'del-confirm') { pfCloseDelModal(); pfDeleteChar(); return }
   if (act === 'confirm-save') { pfCloseConfirm(); pfSaveDraft(true); return }
   if (act === 'confirm-discard') { pfCloseConfirm(); pfCloseDetail(); return }
   if (act === 'confirm-cancel') { pfCloseConfirm(); return }
@@ -1137,6 +1182,7 @@ function pfOpenDetail(mode, arg) {
 
   _pfPanel = 'profile'                // 默认进 PROFILE
   pfCloseGenderModal()                // 上次留下的弹窗不能带进新一次打开
+  pfCloseDelModal()
   pfCloseConfirm()
   pfFillDetail()
   pfSelectPanel('profile')
@@ -1174,12 +1220,28 @@ function pfBackFromDetail() {
 function pfCloseDetail() {
   if (!_pfDetailEl) return
   pfCloseGenderModal()
+  pfCloseDelModal()
   pfCloseConfirm()
   closeAvatarPicker()
   _pfDraft = null
   _pfClean = ''
   _pfDetailEl.classList.remove('show')
   _pfDetailEl.setAttribute('aria-hidden', 'true')
+}
+
+function pfOpenDelModal() {
+  if (!_pfDelModalEl || _pfMode === 'create') return
+  _pfDelNameEl.textContent = pfNameOf(_pfDraft)
+  _pfDelModalEl.hidden = false
+  // 强制同步重排，让关闭态先生效再加 show，否则没有淡入 / 缩放动画
+  void _pfDelModalEl.offsetHeight
+  _pfDelModalEl.classList.add('show')
+}
+
+function pfCloseDelModal() {
+  if (!_pfDelModalEl) return
+  _pfDelModalEl.classList.remove('show')
+  _pfDelModalEl.hidden = true
 }
 
 function pfOpenConfirm() {
@@ -1216,6 +1278,10 @@ function pfFillDetail() {
   pfPaintName()
   pfPaintSummary()
   pfPaintAccountError()
+
+  // 还没落地的新角色没什么可删，删除入口整块收起
+  _pfDelSecEl.hidden = _pfMode === 'create'
+
   _pfClean = pfSnapshot(_pfDraft)     // 从这一刻起才算「改过」
 }
 
@@ -1363,12 +1429,35 @@ function pfSaveDraft(close) {
   _pfChars = next
   _pfDraft = pfNormalizeChar(saved)
   _pfMode = 'edit'                 // 新建的这条已经落地，之后再保存就是替换
+  _pfDelSecEl.hidden = false       // 落地了才有得删
   _pfClean = pfSnapshot(_pfDraft)  // 保存过了，再点返回不该再问
   pfRenderAll()
 
   if (close) { pfCloseDetail(); return true }
   showToast('已保存')
   return true
+}
+
+// ===== 删除角色 =====
+// 只有已保存的角色才走到这里，删完直接退回列表页
+function pfDeleteChar() {
+  if (!_pfDraft || _pfMode === 'create') return
+
+  var next = []
+  for (var i = 0; i < _pfChars.length; i++) {
+    if (_pfChars[i].id !== _pfDraft.id) next.push(_pfChars[i])
+  }
+
+  if (!pfPersist(next)) {
+    showToast('删除失败，浏览器不允许本地存储')
+    return                         // 留在编辑页，不能假装删掉了
+  }
+
+  _pfChars = next
+  _pfClean = pfSnapshot(_pfDraft)  // 已经删掉了，返回时不该再问「保存修改」
+  pfRenderAll()
+  pfCloseDetail()
+  showToast('已删除')
 }
 
 // ===== 打开列表页 =====

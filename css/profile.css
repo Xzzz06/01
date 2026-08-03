@@ -649,6 +649,13 @@ button.pf-menu-item:active .pf-menu-ico {
   color: var(--c-hint);
 }
 
+.pf-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.pf-actions .api-btn { gap: 8px; }
+
 /* ===== 详情 / 编辑页 ===== */
 .pf-detail-scroll {
   flex: 1;
@@ -874,6 +881,29 @@ button.pf-menu-item:active .pf-menu-ico {
   line-height: 1.4;
   color: var(--c-text);
 }
+/* ===== MANAGE：删除角色 ===== */
+.pf-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--btn-h);
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-sub);           /* 全站严格灰阶，危险动作只靠文案区分，不用红色 */
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.pf-danger:active {
+  background: var(--c-accent-dark);
+  color: var(--c-bg);
+}
+
+/* 弹窗里的角色名跟正文同字号，只靠颜色提一档 */
+.pf-del-name { color: var(--c-text); }
+
 /* ===== 分页选择器：排在分组下方，跟着页面一起滚 ===== */
 /* 底色与指示块保持 API 页原样（--c-surface-2 槽 + 白滑块），不另加白底和阴影 */
 .pf-panel-tabs { margin-top: 22px; }
