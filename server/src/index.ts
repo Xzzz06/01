@@ -1,21 +1,19 @@
-// ===== Fastify 启动、访问拦截与静态托管 =====
+// ===== Fastify 启动与访问拦截 =====
 // 方案 §6.1。
 //
-// 全站访问控制只有一处：下面那个 onRequest 钩子。它必须在 @fastify/static 注册之前挂上，
-// 否则静态插件会先把文件发出去，钩子再拦已经晚了。
+// 这是一台纯 API 服务器：前端由 Cloudflare Pages 独立托管，这里不发任何静态文件。
+// 所以非 /api/ 的路径一律 404，鉴权失败也不再跳转登录页——跳转是前端自己的事。
 //
-// 前端的隐藏、跳转、路由守卫都只是体验，删掉它们这里照样拦得住；
-// 反过来这里出问题，前端做多少都没用。
+// 访问控制只有一处：下面那个 onRequest 钩子。CORS 必须注册在它之前，
+// 否则浏览器的 OPTIONS 预检会被钩子先 401 掉，表现为请求一直 pending。
 
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
+import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
-import fastifyStatic from '@fastify/static'
 import websocket from '@fastify/websocket'
 
-import { config, repoRoot } from './config.js'
+import { config } from './config.js'
 import { audit, migrate, pool } from './db.js'
 import { AUTH_REQUIRED, registerAuthRoutes, resolveSession } from './auth.js'
 import { registerNapcatRoutes, startNapcatTimers, syncAllGroups } from './napcat.js'
@@ -24,16 +22,10 @@ import { enabledGroups } from './membership.js'
 import { botCheckedAt, isBotOnline } from './napcat-state.js'
 import { QQ_RE, safeEqual } from './security.js'
 
-// 未登录也能拿到的路径。加任何一条之前先想清楚：它会不会泄露用户内容
+// 未登录也能拿到的路径。加任何一条之前先想清楚：它会不会泄露用户内容。
+// 静态文件那几条随 @fastify/static 一起删了——登录页现在由 Pages 发
 const PUBLIC_PATHS = new Set([
-  '/verify.html',
-  '/auth/verify.css',
-  '/auth/verify.js',
   '/health',
-  '/manifest.json',
-  '/service.js',
-  '/icon/icon_192.png',
-  '/icon/icon_512.png',
   '/api/auth/config',
   '/api/auth/activation-requests',
   '/api/auth/login',
@@ -49,20 +41,8 @@ function isPublic(pathname: string): boolean {
   return false
 }
 
-// 静态根是整个仓库，所以必须反过来写白名单：仓库里还躺着 .env.development、server/、
-// PROMPT/、.git/ 和方案文档。少了这一层，任何登录用户都能把服务端密钥读走
-const STATIC_PREFIXES = ['/css/', '/js/', '/auth/', '/fonts/', '/icon/']
-const STATIC_FILES = new Set(['/', '/index.html', '/manifest.json', '/service.js'])
-
-function isServableStatic(pathname: string): boolean {
-  if (STATIC_FILES.has(pathname)) return true
-  return STATIC_PREFIXES.some((p) => pathname.startsWith(p))
-}
-
-// 白名单判断和静态插件必须对"这条 URL 指的是哪个文件"给出同一个答案。
-// 两边理解不一致就是经典的鉴权绕过：/auth/verify.js/../../.env.development
-// 在字符串匹配眼里是公开的 /auth/ 前缀，落到文件系统上却是仓库根的密钥文件。
-// 所以先把路径归一化成规范形式，再拿归一化的结果去比对。归一化失败一律当非法
+// 路径先归一化再判断，不能拿原始 URL 直接比字符串：/api/auth/me/../../admin/overview
+// 在字符串眼里不是 /api/admin/ 前缀，路由匹配时却是。归一化失败一律当非法
 function canonicalPath(rawUrl: string): string | null {
   const raw = rawUrl.split('?')[0] ?? '/'
 
@@ -86,10 +66,6 @@ function canonicalPath(rawUrl: string): string | null {
     out.push(seg)
   }
   return '/' + out.join('/')
-}
-
-function wantsHtml(accept: string | undefined): boolean {
-  return typeof accept === 'string' && accept.includes('text/html')
 }
 
 const app = Fastify({
@@ -135,8 +111,22 @@ await app.register(rateLimit, {
   keyGenerator: (req) => req.ip
 })
 
+// ===== CORS =====
+// 前端在 Pages 上，跟这台 API 不同源，所以必须显式放行，而且只放行这一个来源：
+// credentials 为 true 时 origin 绝不能写 *，浏览器会直接拒掉整个响应。
+// allowedHeaders 漏掉 X-QuPhone-Poll-Token 的话，轮询接口的预检过不去，
+// 症状是领码之后一直转圈——这个头是 auth.ts 里认轮询凭证用的。
+// 必须 await，这样它的钩子排在下面的拦截钩子之前，OPTIONS 预检才不会被 401 掉
+await app.register(cors, {
+  origin: config.appOrigin,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-QuPhone-Poll-Token'],
+  maxAge: 600
+})
+
 // ===== 全站拦截 =====
-// 必须在 fastifyStatic 之前
+// 必须排在所有路由之前
 app.addHook('onRequest', async (req, reply) => {
   const pathname = canonicalPath(req.url)
   if (pathname === null) {
@@ -146,33 +136,18 @@ app.addHook('onRequest', async (req, reply) => {
   // 管理接口自带 Bearer 鉴权，不走 Session
   if (pathname.startsWith('/api/admin/')) return
 
-  // 仓库里不该被 HTTP 摸到的文件，登录与否都是 404
-  if (!pathname.startsWith('/api/') && !isServableStatic(pathname)) {
+  // 纯 API 服务器，除了上面那几条公开路径，非 /api/ 的一律当不存在
+  if (!pathname.startsWith('/api/')) {
     return reply.code(404).send({ error: 'not_found', message: '资源不存在。' })
   }
 
   if (await resolveSession(req)) return
-
-  if (pathname.startsWith('/api/')) {
-    return reply.code(401).send(AUTH_REQUIRED)
-  }
-  // HTML 导航跳登录页；图片、css、js 这类子资源返回 401 就够了 ——
-  // 给它们发 302 会让浏览器把一整篇 HTML 当成 css 解析，报错莫名其妙
-  if (req.method === 'GET' && wantsHtml(req.headers.accept)) {
-    return reply.redirect('/verify.html', 302)
-  }
+  // 未登录只回 401，跳不跳登录页由前端自己决定——这里已经没有页面可跳了
   return reply.code(401).send(AUTH_REQUIRED)
 })
 
-// ===== 公开页面 =====
-// verify.html 在磁盘上位于 auth/，这里把它挂到 /verify.html。
-// 登录系统的三个文件全在 auth/ 目录里，不跟主站的 js/ css/ 混着放
+// ===== 公开接口 =====
 app.get('/health', async () => ({ ok: true, botOnline: isBotOnline(), checkedAt: botCheckedAt() }))
-
-app.get('/verify.html', async (_req, reply) => {
-  const html = await readFile(join(repoRoot, 'auth/verify.html'), 'utf8')
-  return reply.type('text/html; charset=utf-8').send(html)
-})
 
 registerAuthRoutes(app)
 registerNapcatRoutes(app)
@@ -267,19 +242,6 @@ app.post<{ Params: { id: string } }>('/api/admin/activation-codes/:id/revoke', a
 })
 
 app.post('/api/admin/napcat/sync', async () => syncAllGroups())
-
-// ===== 静态文件 =====
-// 注册在拦截钩子之后。root 是整个仓库：主站的 index.html / css / js / fonts / icon 都从这里发
-await app.register(fastifyStatic, {
-  root: repoRoot,
-  index: ['index.html'],
-  // 目录列表会把仓库结构暴露给任何登录用户，关掉
-  list: false,
-  // 前端每个资源都带 ?v=，缓存交给版本号；HTML 本身绝不能被缓存
-  setHeaders: (res, path) => {
-    if (path.endsWith('.html')) res.header('Cache-Control', 'no-store')
-  }
-})
 
 // ===== 启动 =====
 await migrate()
