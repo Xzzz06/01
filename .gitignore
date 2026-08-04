@@ -6,3 +6,13 @@ PROMPT/
 
 # 编译目录
 .claude/
+
+# 服务端
+node_modules/
+server/dist/
+
+# 密钥： Secret，严禁泄漏
+.env
+.env.*
+deploy/.env
+deploy/private/

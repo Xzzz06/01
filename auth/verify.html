@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- 视口：与 index.html 逐字一致，不可删除任何内容 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+
+  <!-- iOS 全屏模式 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Qu Phone">
+
+  <!-- Android / 标准写法 -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#f6f6f6">
+
+  <!-- 未登录时不该被搜索引擎收录 -->
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="apple-touch-icon" href="/icon/icon_192.png">
+  <link rel="icon" type="image/png" href="/icon/icon_192.png">
+  <link rel="manifest" href="/manifest.json">
+
+  <title>Qu Phone · 验证</title>
+
+  <!-- 不预载 fonts/标题.woff2：那份字体只子集化了 "Qu Phone"，本页也不在公开白名单里（方案 §6.1） -->
+
+  <!-- 图标库：图标数据内联；版本号锁死 -->
+  <script src="https://unpkg.com/reicon@1/cdn/reicon.js"></script>
+
+  <!-- 本页只能引这一个样式表，原因见 auth/verify.css 顶部注释。
+       本文件在磁盘上位于 auth/，服务端把它挂到 /verify.html，所以站内资源一律写绝对路径 -->
+  <link rel="stylesheet" href="/auth/verify.css?v=1.3.0">
+</head>
+<body>
+
+  <div class="device-frame">
+    <div class="vf-page">
+
+      <!-- 提示横幅：绝对定位悬浮层，与主屏的 .dev-banner 同一套参数 -->
+      <div class="vf-toast" id="vf-toast" role="status" aria-live="polite"></div>
+
+      <div class="vf-scroll scroll-area">
+
+        <div class="vf-card">
+
+          <div class="vf-brand">
+            <div class="vf-eyebrow">QU PHONE</div>
+            <h1 class="vf-title">验证</h1>
+            <p class="vf-lede">在授权 QQ 群内领取激活码，用它登录</p>
+          </div>
+
+          <!-- 机器人离线：默认藏起来，接口回报离线才出现 -->
+          <div class="vf-alert" id="vf-bot" hidden>
+            <re-icon icon="bolt" size="14"></re-icon>
+            <span id="vf-bot-text">机器人当前离线，暂时无法发放新的激活指令。</span>
+          </div>
+
+          <!-- 分段卡槽：滑块压在按钮下面，与 API 设置页同一套 -->
+          <div class="vf-tabs" id="vf-tabs" role="tablist">
+            <div class="vf-tab-ind" aria-hidden="true"></div>
+            <button class="vf-tab is-active" type="button" role="tab" data-tab="login" aria-selected="true">登录</button>
+            <button class="vf-tab" type="button" role="tab" data-tab="guide" aria-selected="false">注册说明</button>
+          </div>
+
+          <!-- ===== 登录区 ===== -->
+          <!-- 整套流程都在这一个面板里：填 QQ -> 获取 -> 复制 -> 群里发 -> 自动登录。
+               没有登录按钮，也没有手输激活码的入口（用户明确要求） -->
+          <div class="vf-panel is-active" data-panel="login" role="tabpanel">
+
+            <div class="vf-field">
+              <label class="vf-field-label" for="vf-login-qq">QQ 号</label>
+              <div class="vf-field-box">
+                <input class="vf-input" id="vf-login-qq" type="text" inputmode="numeric"
+                       placeholder="填写在群 QQ" maxlength="12"
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              </div>
+            </div>
+
+            <!-- 码框与按钮是两个并排的独立圆角块，中间留缝，按钮不包在框里 -->
+            <div class="vf-field">
+              <label class="vf-field-label" for="vf-login-code">激活码</label>
+              <div class="vf-field-row">
+                <div class="vf-field-box">
+                  <!-- readonly 而不是 disabled：用户仍能选中手动复制，只是不能自己往里打字 -->
+                  <input class="vf-input vf-input-mono" id="vf-login-code" type="text" readonly
+                         placeholder="PRESS BUTTON"
+                         autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+                </div>
+                <!-- 同一个按钮两种身份：拿到码之前是「获取」，之后是「复制」。文字按钮，不用图标 -->
+                <button class="vf-code-btn" id="vf-code-btn" type="button">获取</button>
+              </div>
+            </div>
+
+            <div class="vf-error" id="vf-login-error" hidden></div>
+
+            <!-- 拿到码才出现：在此之前没有任何状态可报 -->
+            <div class="vf-status" id="vf-status" data-state="waiting" hidden>
+              <span class="vf-dot" aria-hidden="true"></span>
+              <span class="vf-status-text" id="vf-status-text">等待群内验证</span>
+            </div>
+          </div>
+
+          <!-- ===== 注册说明区 ===== -->
+          <!-- 纯文字，不放任何表单。群号不显示，只显示群名 -->
+          <div class="vf-panel" data-panel="guide" role="tabpanel">
+
+            <ol class="vf-steps">
+              <li>填写在群 QQ ，点击「获取」按钮。</li>
+              <li>点击「复制」，将复制的激活指令粘贴到群聊中并且发送。</li>
+              <li>群内收到验证通过信息，本页自动登录。</li>
+            </ol>
+
+            <div class="vf-groups" id="vf-groups" hidden>
+              <div class="vf-groups-label">验证群聊</div>
+              <div class="vf-groups-list" id="vf-groups-list"></div>
+            </div>
+
+            <ul class="vf-tips">
+              <li>登录并且使用产品表示同意《用户协议》和《隐私政策》。</li>
+              <li>登录并且使用产品表示默认成年。</li>
+              <li>每个 QQ 最多同时保留 2 个有效激活码。</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div class="vf-foot">QU PHONE</div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/auth/verify.js?v=1.3.0"></script>
+
+</body>
+</html>

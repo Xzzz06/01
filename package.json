@@ -1,0 +1,29 @@
+{
+  "name": "quphone-auth-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Qu Phone QQ 群激活码登录服务端。前端仍是纯静态 ES5，这里只有服务端依赖。",
+  "scripts": {
+    "dev:server": "tsx watch --env-file=.env.development server/src/index.ts",
+    "start:server": "node --env-file=.env.development server/dist/index.js",
+    "build": "tsc -p server/tsconfig.json",
+    "typecheck": "tsc -p server/tsconfig.json --noEmit",
+    "mock:group-message": "tsx --env-file=.env.development scripts/mock-group-message.mjs"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/rate-limit": "^10.2.2",
+    "@fastify/static": "^10.1.2",
+    "@fastify/websocket": "^11.0.2",
+    "fastify": "^5.2.1",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.10",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,25 @@
+# 本地开发只起一个 PostgreSQL。NapCat 由开发者自己的容器提供，Fastify 直接跑在宿主上。
+#
+# 端口用 5433 不是 5432：本机可能已经装了别的 PostgreSQL，撞端口会以一句
+# "role does not exist" 的形式表现出来，非常难查。
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: quphone-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quphone
+      POSTGRES_USER: quphone
+      POSTGRES_PASSWORD: quphone
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - quphone-pgdata-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quphone -d quphone"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  quphone-pgdata-dev:

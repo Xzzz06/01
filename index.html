@@ -85,6 +85,9 @@
 
   </div>
 
+  <!-- app-auth.js 必须排在所有模块最前：它一加载就发 /api/auth/me，
+       boot.js 的 startBoot() 要等它确认过登录态（方案 §6.2） -->
+  <script src="auth/app-auth.js?v=1.0.0"></script>
   <!-- store 必须排在用它的模块前面：它一加载就开始装载 IndexedDB，
        其余模块的读写都要等它的 storeReady() -->
   <script src="js/store.js?v=2.0.0"></script>

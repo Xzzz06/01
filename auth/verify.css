@@ -1,0 +1,574 @@
+/* ===== 验证页（唯一公开入口）===== */
+/* 设计与理由见《qu phone登录方案.md》§5。
+ *
+ * 本文件必须自带设计变量和全局重置：服务端公开白名单只放行 /auth/verify.css，
+ * 未登录时 base.css 会返回 401（方案 §6.1），所以既不能 <link> 它、也不能 @import。
+ * 下面这份 :root 与全局重置是从 css/base.css 逐条抄来的，那边改了值这里要同步。
+ *
+ * 与全站一致：不出现任何彩色，只用灰阶；过渡统一 var(--ease)。
+ * 输入框 / 按钮 / 分段卡槽的观感对齐 setting-api.css，但类名另起一套（不能复用它的样式表）。 */
+
+:root {
+  /* ===== 颜色 ===== */
+  --c-bg: #ffffff;
+  --c-surface: #f6f6f6;
+  --c-surface-2: #ededed;
+  --c-surface-3: #e4e4e4;
+  --c-border: rgba(0, 0, 0, 0.05);
+  --c-border-m: rgba(0, 0, 0, 0.09);
+
+  --c-text: #3a3a3a;
+  --c-title: #6e6e6e;
+  --c-sub: #939393;
+  --c-hint: #b8b8b8;
+
+  --c-accent: #8a8a8a;
+  --c-accent-dark: #787878;
+
+  /* ===== 阴影 ===== */
+  --shadow-sm: 0 1px 6px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+  /* ===== 圆角 ===== */
+  --r-sm: 8px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 100px;
+
+  /* ===== 动效 ===== */
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --dur: 0.2s;
+
+  /* ===== 安全区 ===== */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
+  /* ===== 字体 ===== */
+  --font-ui: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  /* 激活码 / 群命令专用：等宽才不会让 6 位码看起来一团 */
+  --font-mono: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --font-size-body: 14px;
+
+  /* ===== 排版层级 ===== */
+  --title-size: 32px;
+  --title-weight: 600;
+  --label-size: 10px;
+  --label-weight: 500;
+  --row-name-size: 14px;
+  --row-name-weight: 450;
+  --row-value-size: 12px;
+
+  /* ===== 本页部件尺寸（与 api-page 同值）===== */
+  --field-h: 48px;
+}
+
+/* ===== 全局重置（同 base.css）===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  overscroll-behavior: none;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
+  color: var(--c-text);
+  background: var(--c-surface);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+input { user-select: text; }
+/* 输入框字号必须 >= 16px，否则 iOS 一聚焦就放大整页 */
+input { font-size: 16px; outline: none; }
+button { border: none; background: none; cursor: pointer; font-family: inherit; }
+
+re-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.device-frame {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.scroll-area {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 页面底 ===== */
+/* 壁纸与主屏 #home-page 同一套渐变：本页是进主屏前的第一眼，底不能是另一种灰 */
+.vf-page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 22% 18%, #ffffff 0%, rgba(255, 255, 255, 0) 55%),
+    radial-gradient(circle at 78% 84%, #e2e2e2 0%, rgba(226, 226, 226, 0) 60%),
+    linear-gradient(160deg, #f6f6f6 0%, #ededed 100%);
+}
+
+/* hidden 属性来自 UA 样式表，本文件里的 display 声明会盖掉它，补一条更高优先级的 */
+.vf-page [hidden] { display: none; }
+
+/* 垂直居中靠子元素的 auto 外边距，不用 justify-content: center ——
+ * 后者在内容比容器高时会把顶部溢出的一段裁掉且滚不到 */
+.vf-scroll {
+  flex: 1;                                  /* .scroll-area 不带 flex: 1 */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(24px + var(--sat)) 20px calc(24px + var(--sab));
+}
+
+/* ===== 卡片 ===== */
+.vf-card {
+  width: 100%;
+  max-width: 380px;
+  margin: auto auto 0;
+  padding: 26px 20px 24px;
+  border-radius: 28px;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-lg);
+}
+
+.vf-brand { text-align: center; }
+
+.vf-eyebrow {
+  /* letter-spacing 会在最后一个字母后面也加一份，居中文本要补等量左边距抵消 */
+  margin-left: 0.18em;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  color: var(--c-hint);
+}
+
+.vf-title {
+  margin: 8px 0 0;
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);
+}
+
+.vf-lede {
+  margin: 8px 0 0;
+  font-size: var(--row-value-size);
+  line-height: 1.5;
+  color: var(--c-sub);
+}
+
+/* ===== 机器人离线提示 ===== */
+.vf-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--c-surface-2);
+  font-size: var(--row-value-size);
+  line-height: 1.5;
+  color: var(--c-text);
+}
+.vf-alert re-icon {
+  margin-top: 2px;
+  color: var(--c-accent-dark);
+}
+
+/* ===== 分段卡槽 ===== */
+.vf-tabs {
+  --tab-pad: 4px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  height: 48px;
+  margin-top: 22px;
+  padding: var(--tab-pad);
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+}
+
+/* 滑块压在按钮下面，按钮背景保持透明，文字才不会被盖住 */
+.vf-tab-ind {
+  position: absolute;
+  z-index: 0;
+  top: var(--tab-pad);
+  bottom: var(--tab-pad);
+  left: var(--tab-pad);
+  width: calc((100% - var(--tab-pad) * 2) / 2);
+  border-radius: var(--r-pill);
+  background: var(--c-bg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10), 0 0 1px rgba(0, 0, 0, 0.06);
+  /* 只动 transform：切背景色 + box-shadow 过渡是每帧重新栅格化模糊阴影，移动端最贵的写法 */
+  transform: translateX(calc(var(--vf-tab-i, 0) * 100%));
+  transition: transform 0.26s var(--ease);
+}
+
+.vf-tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0;
+  border-radius: var(--r-pill);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-hint);
+  transition: color var(--dur) var(--ease);
+}
+.vf-tab.is-active { color: var(--c-text); }
+
+/* ===== 面板 ===== */
+.vf-panel { display: none; }
+.vf-panel.is-active { display: block; }
+
+/* ===== 输入字段 ===== */
+.vf-field { margin-top: 16px; }
+
+.vf-field-label {
+  display: block;
+  margin: 0 0 8px 4px;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+
+.vf-field-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--field-h);
+  padding: 0 16px;
+  border-radius: 24px;
+  background: var(--c-surface-2);
+  transition: background var(--dur) var(--ease);
+}
+/* 聚焦只提亮底色，不加彩色描边 —— 全站没有强调色 */
+.vf-field-box:focus-within { background: var(--c-surface-3); }
+
+.vf-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  color: var(--c-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.vf-input::placeholder { color: var(--c-hint); }
+
+/* 激活码：等宽 + 字距，让 6 位码一眼能逐字核对。
+ * 不能加 text-transform: uppercase —— 前缀 QwQ 是大小写混排的，
+ * 一转大写就显示成 QWQ，和用户要复制去群里发的那串对不上 */
+.vf-input-mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.14em;
+}
+.vf-input-mono::placeholder { letter-spacing: 0.14em; }
+
+/* ===== 行内报错 ===== */
+/* 合法时完全不显示，用户真填错才出现，与注册页的 .cr-error 同一套做法 */
+.vf-error {
+  margin: 10px 4px 0;
+  font-size: var(--row-value-size);
+  line-height: 1.45;
+  color: var(--c-text);
+}
+
+/* ===== 码框 + 按钮并排 ===== */
+/* 两个独立的圆角块，中间留 8px 缝。按钮不包在框里 */
+.vf-field-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.vf-field-row .vf-field-box {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===== 获取 / 复制按钮 ===== */
+/* 与左边码框同高同圆角。只有这一行，四角都保持圆角、不压扁成上下拼接的那种形状 */
+.vf-code-btn {
+  flex: none;
+  width: 76px;
+  height: var(--field-h);
+  border-radius: 24px;
+  background: var(--c-surface-2);
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+  white-space: nowrap;
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.vf-code-btn:active {
+  transform: scale(0.96);
+  background: var(--c-surface-3);
+}
+
+/* 复制成功那一下给个明确反馈，1.6 秒后自己退回去 */
+.vf-code-btn.is-copied {
+  background: var(--c-accent-dark);
+  color: var(--c-bg);
+}
+
+/* 提交期间禁用，防重复请求（方案 §5.3）。按下态也一并停掉 */
+.vf-code-btn[disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ===== 状态行 ===== */
+.vf-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: var(--row-value-size);
+  line-height: 1.4;
+  color: var(--c-sub);
+}
+
+.vf-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-hint);
+}
+/* 等待中才呼吸；成功 / 过期都是静止的，避免页面一直有东西在动 */
+.vf-status[data-state="waiting"] .vf-dot {
+  background: var(--c-accent-dark);
+  animation: vfPulse 1.6s var(--ease) infinite;
+}
+.vf-status[data-state="done"] .vf-dot { background: var(--c-text); }
+.vf-status[data-state="done"] .vf-status-text { color: var(--c-text); }
+.vf-status[data-state="dead"] .vf-dot { background: var(--c-hint); opacity: 0.5; }
+
+@keyframes vfPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+
+/* ===== 授权群 ===== */
+.vf-groups { margin-top: 20px; }
+
+.vf-groups-label {
+  margin: 0 0 10px 4px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+.vf-groups-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 只有群名，没有群号（用户明确要求）。群名要能被选中复制，方便去 QQ 里搜 */
+.vf-group {
+  max-width: 100%;
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-value-size);
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ===== 注册步骤 ===== */
+/* 序号自己画：list-style 的默认序号没法跟正文对齐到同一条基线 */
+.vf-steps {
+  counter-reset: vf-step;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vf-steps li {
+  counter-increment: vf-step;
+  position: relative;
+  margin-top: 14px;
+  padding-left: 28px;
+  font-size: var(--row-value-size);
+  line-height: 1.6;
+  color: var(--c-text);
+}
+
+.vf-steps li::before {
+  content: counter(vf-step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--c-sub);
+}
+
+.vf-steps strong {
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+/* ===== 说明清单 ===== */
+.vf-tips {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vf-tips li {
+  position: relative;
+  padding-left: 14px;
+  margin-top: 8px;
+  font-size: var(--row-value-size);
+  line-height: 1.55;
+  color: var(--c-hint);
+}
+.vf-tips li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--c-hint);
+}
+
+/* ===== 页脚 ===== */
+/* 上 22px、下 auto，与卡片的上 auto 一起把这一整块摆到垂直中间。
+ * 左右不能写 auto：横向的 auto 外边距会关掉 stretch，让这行缩成内容宽、贴到左边 */
+.vf-foot {
+  flex: none;
+  margin: 22px 0 auto;
+  margin-left: 0.18em;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.18em;
+  color: var(--c-hint);
+  text-align: center;
+}
+
+/* ===== 提示横幅 ===== */
+/* 参数与主屏的 .dev-banner 一致，只是挂在 .vf-page 下 */
+.vf-toast {
+  position: absolute;
+  top: calc(var(--sat) + 12px);        /* 相加不是取大，必须避开刘海/状态栏 */
+  left: 0;
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: calc(100% - 40px);
+  margin: 0 auto;
+  padding: 9px 18px;
+  border-radius: var(--r-pill);
+
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--c-text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+
+  pointer-events: none;                /* 纯提示，绝不拦截点击 */
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition:
+    opacity 0.18s var(--ease),
+    transform 0.18s var(--ease),
+    visibility 0s linear 0.18s;
+}
+
+.vf-toast.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition:
+    opacity 0.22s var(--ease),
+    transform 0.22s var(--ease),
+    visibility 0s;
+}
+
+/* ===== 桌面 ===== */
+/* 本页不套主屏那层模拟手机外框：验证卡片直接浮在铺满整屏的壁纸上。
+ * 主屏的 base.css 仍然收成 430×932 的手机，两边不一致是有意的 */
+@media (min-width: 600px) {
+  body { align-items: center; }
+
+  /* 桌面上 env(safe-area-inset-*) 全是 0，卡片会贴到窗口边。
+     只改这两个变量，上面所有 calc(基础 + var(--sat)) 自动退开 */
+  :root {
+    --sat: 14px;
+    --sab: 14px;
+  }
+}
+
+@media (hover: hover) {
+  .vf-code-btn:hover { background: var(--c-surface-3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vf-tab-ind { transition: none; }
+  .vf-status[data-state="waiting"] .vf-dot { animation: none; }
+  .vf-code-btn:active { transform: none; }
+}
