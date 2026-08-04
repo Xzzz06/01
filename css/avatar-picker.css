@@ -75,6 +75,60 @@
   color: var(--c-hint);
 }
 
+/* 选择态 / 裁剪态两屏互斥，卡片本身的间距靠各自的 gap 维持 */
+.ap-pick,
+.ap-crop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ap-crop { display: none; }
+.ap-modal.is-crop .ap-pick { display: none; }
+.ap-modal.is-crop .ap-crop { display: flex; }
+
+/* 取景框：正方形，框内就是最终出图范围，所以不再叠选框或网格。
+ * 用 padding-top 撑正方形，不用 aspect-ratio —— 老 iOS Safari 不认它 */
+.ap-stage {
+  position: relative;
+  width: 100%;
+  padding-top: 100%;
+  margin: 4px 0 2px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--c-surface-2);
+  touch-action: none;                /* 交给 JS 处理拖动与捏合，不让浏览器抢去滚动/缩放 */
+  cursor: move;
+}
+
+/* 宽高由 JS 写死成「铺满取景框」的尺寸，位移和缩放也由 JS 写 transform。
+ * 居中靠 transform 里那句 translate(-50%, -50%)，不能用 margin 负值 ——
+ * 百分比 margin 按容器宽度算，不是按图片自身宽度 */
+.ap-crop-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* base.css 给 img 设了 max-width: 100%，放大后会被压回取景框宽度 */
+  max-width: none;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ap-crop-tip {
+  text-align: center;
+  font-size: var(--label-size);
+  line-height: 1.4;
+  color: var(--c-hint);
+}
+
+.ap-crop-actions {
+  display: flex;
+  gap: 8px;
+}
+.ap-crop-actions .ap-btn { flex: 1; }
+
 .ap-preview {
   align-self: center;
   width: 108px;

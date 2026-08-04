@@ -93,6 +93,10 @@ function openApp(appId) {
   if (!app) return                // 找不到就静默忽略，不能显示错误的名称
 
   // 已经有真实页面的应用在这里分流，其余仍走「功能开发中」横幅
+  if (appId === 'chat') {
+    openChatRegisterPage()        // chat-register.js 提供
+    return
+  }
   if (appId === 'settings') {
     openSettings()                // settings.js 提供
     return

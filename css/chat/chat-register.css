@@ -1,0 +1,253 @@
+/* ===== 聊天注册页 ===== */
+/* 设计与理由见 PROMPT/13_聊天注册页.md
+ * 本文件禁止出现 backdrop-filter 和 will-change，滑入只动 transform。
+ * 颜色一律取 base.css 已有变量；输入框（.api-field-box / .api-input / .api-eye）、
+ * 按钮（.api-btn）、分组小标题（.api-section-label）全部复用 css/setting-api.css，
+ * 这里只写差异。 */
+.cr-page {
+  /* 这一组是 setting-api.css 里 .api-field-box / .api-btn 读的变量，
+   * 值必须与 .api-page 保持一致，否则复用过来的部件会塌成没圆角、没底色的一坨 */
+  --card-radius: 20px;
+  --press-bg: var(--c-surface-3);
+  --field-h: 48px;
+  --btn-h: 46px;
+
+  /* 字号 / 字重不在这里定义：统一走 base.css :root 的 --title-* / --label-* / --row-* */
+
+  position: absolute;            /* #app 是 position: relative，见 base.css */
+  inset: 0;
+  z-index: 10;                   /* 一级页，与设置页 / 档案页 / 世界书页同级，彼此不会同时打开 */
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);  /* 必须不透明，完整盖住主屏 */
+
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s linear 0.3s;
+}
+
+.cr-page.show {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s;
+}
+
+/* hidden 属性来自 UA 样式表，本文件里的 display 声明会盖掉它，补一条更高优先级的 */
+.cr-page [hidden] { display: none; }
+
+.cr-scroll {
+  flex: 1;                       /* .scroll-area 不带 flex: 1 */
+  min-height: 0;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(12px + var(--sat)) 20px calc(32px + var(--sab));
+}
+
+/* ===== 顶栏：返回键 + 左对齐标题，同一行 ===== */
+.cr-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 标题占满右侧剩余宽度并左对齐 —— 不要改成居中 */
+.cr-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.cr-eyebrow {
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cr-title {
+  margin: 6px 0 0;
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);          /* 主文字用深灰，不用纯黑 */
+}
+
+/* 视觉尺寸沿用设置页 / 档案页的 40px，靶区用伪元素补到 44px */
+.cr-back {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-text);          /* reicon 内部用 currentColor */
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.cr-back::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+.cr-back:active {
+  transform: scale(0.88);
+  background: var(--press-bg);
+}
+
+/* ===== 头像 ===== */
+/* 与角色编辑页的 .pf-avatar 逐值一致，两页的头像必须长得一样大 */
+.cr-hero {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.cr-avatar {
+  width: 116px;
+  height: 116px;
+  padding: 4px;
+  border-radius: 50%;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s var(--ease);
+}
+.cr-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--c-surface-2);
+}
+.cr-avatar:active { transform: scale(0.96); }
+
+/* ===== 表单 ===== */
+.cr-field { margin-bottom: 12px; }
+
+.cr-field-label {
+  display: block;
+  margin: 0 0 8px 4px;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+
+/* 合法时完全不显示限制说明，敲进非法字符才出现，见 crPaintIdError() */
+.cr-error {
+  margin: -4px 4px 12px;
+  font-size: var(--row-value-size);
+  line-height: 1.4;
+  color: var(--c-text);
+}
+
+/* ===== PERSONA 折叠块 ===== */
+/* 折叠头与展开区是同一张卡，做法与世界书页的条目手风琴一致：
+ * 折叠用 display 切换而不是高度动画 —— 正文高度不定，动画只会抖 */
+.cr-fold {
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  background: var(--c-surface-2);
+}
+
+.cr-fold-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 16px;
+  text-align: left;
+  transition: background var(--dur) var(--ease);
+}
+.cr-fold-head:active { background: var(--press-bg); }
+
+.cr-fold-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 两行都是 span，必须自己转成块级 */
+.cr-fold-title {
+  display: block;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+}
+
+/* 固定说明，不跟着正文变；超长省略，不许换行把卡片顶高 */
+.cr-fold-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 展开后输入框自带占位符，头上再摆一遍说明是重复的。
+ * 头的高度由 min-height 兜着，收放不会跳 */
+.cr-fold.is-open .cr-fold-sub { display: none; }
+
+.cr-fold-chevron {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--c-hint);
+  transition: transform 0.22s var(--ease);
+}
+.cr-fold.is-open .cr-fold-chevron { transform: rotate(180deg); }
+
+.cr-fold-body { display: none; }
+.cr-fold.is-open .cr-fold-body {
+  display: block;
+  padding: 0 16px 16px;
+}
+
+/* 输入区与折叠卡同底、不再套一层圆角块：卡片本身就是这块面具的边界 */
+.cr-area {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--c-text);
+  resize: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cr-area::placeholder { color: var(--c-hint); }
+
+/* 复用 .api-btn-row，只把与表单之间的距离拉开一档 */
+.cr-submit { margin-top: 28px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cr-page,
+  .cr-page.show {
+    transform: none;
+    transition: visibility 0s;
+  }
+  .cr-fold-chevron { transition: none; }
+  .cr-back { transition: background var(--dur) var(--ease); }
+  .cr-back:active,
+  .cr-avatar:active {
+    transform: none;
+  }
+}
