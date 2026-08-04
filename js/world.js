@@ -26,7 +26,7 @@ var WB_CAT_LABEL = 'FOLDERS'
 var _wbBooks = []                // 已保存世界书，页面里的唯一真相
 var _wbCats = []                 // 用户自建分类名，DEFAULT 隐含不入库
 var _wbIdSeq = 0                 // 同一毫秒内连建两条也不会撞 id
-var _wbCharNames = {}            // { 角色 id: 名称 }，每次渲染前刷新，避免逐行读 localStorage
+var _wbCharNames = {}            // { 角色 id: 名称 }，每次渲染前刷新，避免逐行读存储
 
 // 纯 UI 状态
 var _wbScope = 'all'             // all | global | local
@@ -55,6 +55,7 @@ var _wbPinsEl = null
 var _wbListSecEl = null
 var _wbListEl = null
 var _wbEmptyEl = null
+var _wbActionsEl = null          // 底部两颗新建按钮，只在整页空空如也时出现
 var _wbCatModalEl = null
 var _wbCatListEl = null
 var _wbNewCatEl = null
@@ -90,7 +91,7 @@ var _wbDelModalEl = null
 var _wbLeaveModalEl = null
 
 // ===== 数据归一化 =====
-// localStorage 是用户可以随手改的，读回来的东西一律不能信
+// 存储是用户可以随手改的，读回来的东西一律不能信
 function wbStr(v) {
   return typeof v === 'string' ? v : ''
 }
@@ -115,7 +116,7 @@ function wbFocus(el) {
   app.scrollTop = 0
 }
 
-// 按属性值找节点。逐个比对而不是拼选择器 —— id 是从 localStorage 读回来的，
+// 按属性值找节点。逐个比对而不是拼选择器 —— id 是从存储读回来的，
 // 里面带个引号就会让 querySelector 当场抛错
 function wbByAttr(root, attr, value) {
   var els = root.querySelectorAll('[' + attr + ']')
@@ -397,7 +398,8 @@ function buildWorldPage() {
       '<div class="wb-empty" hidden></div>' +
 
       // 与加号菜单前两项是同一批动作的两个入口，行为必须完全一致
-      '<div class="wb-actions">' +
+      // 显隐由 wbRenderList() 决定，初始先藏着，免得首帧闪一下
+      '<div class="wb-actions" hidden>' +
         '<button class="api-btn" type="button" data-act="new-cat">' +
           '<re-icon icon="folder-plus" size="' + WB_ICON_SIZE + '"></re-icon>新建分类' +
         '</button>' +
@@ -454,6 +456,7 @@ function buildWorldPage() {
   _wbListSecEl = el.querySelector('.wb-list-sec')
   _wbListEl = el.querySelector('.wb-list')
   _wbEmptyEl = el.querySelector('.wb-scroll > .wb-empty')
+  _wbActionsEl = el.querySelector('.wb-actions')
   _wbCatModalEl = el.querySelector('.wb-cat-modal')
   _wbCatListEl = el.querySelector('.wb-cat-modal .api-modal-list')
   _wbNewCatEl = el.querySelector('.wb-newcat-modal')
@@ -750,6 +753,10 @@ function wbRenderList() {
   var empty = wbEmptyText(base)
   _wbEmptyEl.textContent = empty
   _wbEmptyEl.hidden = !empty || (pins.length + rest.length) > 0
+
+  // 底部按钮只在「既没有世界书行、也没有空状态文案」时露面：那时整页就剩它们俩。
+  // 筛选筛空了不算 —— 那种情况页面上有文案在解释，新建入口交给顶栏加号菜单。
+  _wbActionsEl.hidden = (pins.length + rest.length) > 0 || !!empty
 }
 
 function wbRenderSeg(base) {

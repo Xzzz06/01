@@ -43,8 +43,21 @@
   padding: calc(12px + var(--sat)) 20px calc(24px + var(--sab));
 }
 
-/* ===== 顶部：返回 / 小标签 / 大标题 ===== */
+/* ===== 顶栏：返回键 + 左对齐标题，同一行（与档案页 / 世界书页一致） ===== */
+.settings-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 标题占满返回键右侧的剩余宽度并左对齐 —— 不要改成居中 */
+.settings-heading {
+  flex: 1;
+  min-width: 0;
+}
+
 .settings-back {
+  flex: none;
   width: 40px;
   height: 40px;
   display: flex;
@@ -61,13 +74,15 @@
 }
 
 .settings-eyebrow {
-  margin-top: 26px;
   font-size: var(--label-size);
   font-weight: var(--label-weight);
   line-height: 1.2;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--c-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settings-title {
@@ -223,3 +238,172 @@
     transform: none;
   }
 }
+
+/* ===== 字体样式页 ===== */
+/* 页面外壳（.api-page / .api-header / .api-card / .api-modal…）整套复用 css/setting-api.css，
+ * 这里只写字体页独有的部件。
+ *
+ * 本文件在 index.html 里排在 setting-api.css 之前，同名同权重的规则会被它盖掉 ——
+ * 所以下面凡是碰到 .api-* 类的规则都必须带 .font-page 前缀，靠特指度取胜，不能靠顺序。
+ * 本页同样禁止 backdrop-filter 和 will-change。 */
+
+/* ===== 预览卡 ===== */
+/* 不写 font-family：整站字体就是 --font-ui，让它自然继承才是切换后的真实效果 */
+.font-preview-zh {
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--c-text);
+}
+
+.font-preview-en {
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--c-sub);
+}
+
+.font-preview-name {
+  margin-top: 12px;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-hint);
+}
+
+/* ===== 字体列表 ===== */
+/* 「系统默认」那行没有删除键，圆角不能写死在 .font-row-side 上 ——
+ * 右侧外角一律打给行内最后一个子元素，有没有删除键都成立 */
+.font-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.font-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--card-gap);
+}
+
+.font-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-height: 56px;
+  padding: 10px 16px;
+  text-align: left;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+  transition: background var(--dur) var(--ease);
+}
+.font-row-main:active { background: var(--press-bg); }
+
+.font-row:first-child .font-row-main { border-top-left-radius: var(--card-radius); }
+.font-row:first-child > :last-child { border-top-right-radius: var(--card-radius); }
+.font-row:last-child .font-row-main { border-bottom-left-radius: var(--card-radius); }
+.font-row:last-child > :last-child { border-bottom-right-radius: var(--card-radius); }
+
+.font-row-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+}
+.font-row-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 勾始终渲染，只切透明度：选中与否行高不跳 */
+.font-row-name re-icon {
+  color: var(--c-accent-dark);
+  opacity: 0;
+}
+.font-row.is-selected .font-row-name re-icon { opacity: 1; }
+
+.font-row-sub {
+  max-width: 100%;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.font-row-side {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 0 12px;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+  color: var(--c-hint);
+  font-size: var(--row-value-size);
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.font-row-side:active { background: var(--press-bg); }
+/* 二次确认态：全站严格灰阶，只靠文案和深浅区分，不用红色 */
+.font-row.is-confirming .font-row-side {
+  background: var(--c-accent-dark);
+  color: var(--c-bg);
+}
+
+/* ===== 导入按钮与说明 ===== */
+.font-page .font-import { margin-top: 12px; }
+
+.font-tip {
+  margin-top: 12px;
+  padding: 0 4px;
+  font-size: var(--row-value-size);
+  line-height: 1.5;
+  color: var(--c-hint);
+}
+
+/* ===== 导入弹窗 ===== */
+/* 卡片是 flex 列且限高，表单区自己滚，按钮和取消键始终留在视野里 */
+.font-page .font-form {
+  flex: 1;
+  min-height: 0;
+  overscroll-behavior: contain;     /* 表单滚到头不把滚动链传给背后的 .api-scroll */
+}
+
+/* button 是收缩到内容宽的，.api-btn 那条 flex: 1 只在 .api-btn-row 里生效，单独用必须自己撑满 */
+.font-page .font-modal-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* 校验中：两条导入路径一起锁，避免连点导入出两份 */
+.font-page .api-btn.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* 「或」分隔线：两侧细线由伪元素撑开，不用额外标签 */
+.font-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  font-size: var(--row-value-size);
+  color: var(--c-hint);
+}
+.font-or::before,
+.font-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--c-border-m);
+}
+
+.font-page .font-form .font-tip { margin-bottom: 2px; }

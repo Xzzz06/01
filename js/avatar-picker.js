@@ -4,7 +4,9 @@
 // 只认「当前头像 + 选中回调」两个参数，不读写任何业务数据、不依赖调用方内部变量。
 
 var AVATAR_FALLBACK = 'icon/ava/00.jpg'
-var AVATAR_MAX_SIDE = 512        // 导入图先缩到这个边长再转 Data URL —— 原图直接存必定撑爆 localStorage
+// 头像是跟着角色数据一起存的 Data URL，不走二进制仓库。缩到这个边长再转，
+// 原图一张就好几 MB，几十个角色能把角色清单撑成开机要装载的大块
+var AVATAR_MAX_SIDE = 512
 var AVATAR_JPEG_Q = 0.85
 var AVATAR_URL_TIMEOUT = 10000   // <img> 的 onerror 在部分网络错误下不触发，超时兜底
 
@@ -172,7 +174,7 @@ function apReadFile() {
 }
 
 // 等比缩到 AVATAR_MAX_SIDE 以内再转 Data URL。
-// 不缩的话一张手机原图就是好几 MB，localStorage 必然写失败，用户只会看到「保存失败」。
+// 不缩的话一张手机原图就是好几 MB，全都会进开机装载的那份角色清单里。
 function apShrink(src, done, fail) {
   var img = new Image()
 

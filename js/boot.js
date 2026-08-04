@@ -124,4 +124,8 @@ function dismissBoot(reduced) {
   }, (reduced ? BOOT_FADE_RM : BOOT_FADE) + 100)
 }
 
-document.addEventListener('DOMContentLoaded', startBoot)
+// 必须等存储装载完再开：storeGet 是同步接口，靠的是开机把数据读进内存，
+// 抢在它前面渲染主屏会读到一片空。storeReady 在存储不可用时同样会回调，不会卡住启动
+document.addEventListener('DOMContentLoaded', function() {
+  storeReady(startBoot)
+})

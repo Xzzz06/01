@@ -63,7 +63,7 @@ var _apiModalEmptyEl = null
 var _apiModalRows = []           // 筛选时不再查 DOM
 
 // ===== 数据归一化 =====
-// localStorage 是用户可以随手改的，读回来的东西一律不能信
+// 存储是用户可以随手改的，读回来的东西一律不能信
 function apiClampTemp(n) {
   var t = parseFloat(n)
   if (isNaN(t)) return API_TEMP_DEFAULT
@@ -900,7 +900,7 @@ var _voiceModalEmptyEl = null
 var _voiceModalRows = []
 
 // ===== 数据归一化 =====
-// localStorage 是用户可以随手改的，读回来的东西一律不能信
+// 存储是用户可以随手改的，读回来的东西一律不能信
 function voiceEndpoint(id) {
   for (var i = 0; i < VOICE_MM_ENDPOINTS.length; i++) {
     if (VOICE_MM_ENDPOINTS[i].id === id) return VOICE_MM_ENDPOINTS[i]

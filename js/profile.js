@@ -66,6 +66,7 @@ var _pfTabIndEl = null           // 选择行的滑块，跟着当前标签走
 var _pfTabGroupEl = null         // folder 按钮里跟在图标后面的分组名
 var _pfGridEl = null
 var _pfEmptyEl = null
+var _pfActionsEl = null          // 底部两颗新建按钮，只在整页空空如也时出现
 var _pfGroupModalEl = null
 var _pfGroupListEl = null
 var _pfTimer = null              // 全局唯一计时器，开 / 关互相抢占，避免快速连点时打架
@@ -95,7 +96,7 @@ var _pfDelNameEl = null
 var _pfConfirmEl = null
 
 // ===== 数据归一化 =====
-// localStorage 是用户可以随手改的，读回来的东西一律不能信
+// 存储是用户可以随手改的，读回来的东西一律不能信
 function pfStr(v) {
   return typeof v === 'string' ? v : ''
 }
@@ -301,7 +302,8 @@ function buildProfilePage() {
       '<div class="pf-empty" hidden></div>' +
 
       // 与加号菜单前两项是同一批动作的两个入口，行为必须完全一致
-      '<div class="pf-actions">' +
+      // 显隐由 pfRenderList() 决定，初始先藏着，免得首帧闪一下
+      '<div class="pf-actions" hidden>' +
         '<button class="api-btn" type="button" data-act="new-char">' +
           '<re-icon icon="plus" size="' + PF_ICON_SIZE + '"></re-icon>新建 CHAR' +
         '</button>' +
@@ -353,6 +355,7 @@ function buildProfilePage() {
   _pfTabGroupEl = el.querySelector('.pf-tab-group-name')
   _pfGridEl = el.querySelector('.pf-grid')
   _pfEmptyEl = el.querySelector('.pf-empty')
+  _pfActionsEl = el.querySelector('.pf-actions')
   _pfGroupModalEl = el.querySelector('.pf-group-modal')
   _pfGroupListEl = el.querySelector('.pf-group-modal .api-modal-list')
 
@@ -842,6 +845,10 @@ function pfRenderList() {
   var empty = pfEmptyText()
   _pfEmptyEl.textContent = empty
   _pfEmptyEl.hidden = !empty || list.length > 0     // 文案为空时连占位高度也不留
+
+  // 底部按钮只在「既没有角色卡、也没有空状态文案」时露面：那时整页就剩它们俩。
+  // 筛选筛空了不算 —— 那种情况页面上有文案在解释，新建入口交给顶栏加号菜单。
+  _pfActionsEl.hidden = list.length > 0 || !!empty
 }
 
 function pfEmptyText() {
