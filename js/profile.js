@@ -7,6 +7,8 @@
 //       setting-api.js（.api-modal / .api-tabs / .api-field-box 等公共样式与
 //       apiBindEye() / apiApplyRowCorners() 两个公共行为）、avatar-picker.js（选头像）。
 // 因此本文件必须排在以上文件之后加载。
+// 顶栏的导出钮调 profile-export.js 的 openProfileExport() —— 那个文件排在本文件之后，
+// 只在用户点下去时才会用到，解析期不依赖。
 
 var PF_SLIDE = 300               // 必须与 css/profile.css .pf-page 的 transition 一致
 var PF_KEY = 'profile.characters'
@@ -69,6 +71,8 @@ var _pfEmptyEl = null
 var _pfActionsEl = null          // 底部两颗新建按钮，只在整页空空如也时出现
 var _pfGroupModalEl = null
 var _pfGroupListEl = null
+var _pfImportModalEl = null
+var _pfImportFileEl = null       // 隐藏的文件框，导入角色卡时才 click()
 var _pfTimer = null              // 全局唯一计时器，开 / 关互相抢占，避免快速连点时打架
 
 var _pfDetailEl = null           // 编辑页根节点
@@ -90,6 +94,7 @@ var _pfGenderPickEl = null
 var _pfAccountErrEl = null
 var _pfGenderModalEl = null
 var _pfGenderListEl = null
+var _pfExportBtnEl = null        // 顶栏导出钮，与删除入口一样在新建态收起
 var _pfDelSecEl = null           // PROFILE 分页底部的 MANAGE 区块，新建态整块收起
 var _pfDelModalEl = null
 var _pfDelNameEl = null
@@ -326,17 +331,16 @@ function buildProfilePage() {
         '<span class="pf-menu-text">新建 NPC</span>' +
         '<span class="pf-menu-ico"><re-icon icon="users" size="18"></re-icon></span>' +
       '</button>' +
-      // 本期只显示，不绑任何事件：不开文件框、不导入导出、也不弹「开发中」
-      '<div class="pf-menu-item is-idle">' +
+      // 导出在角色编辑页顶栏，不放这里 —— 列表页的菜单没有「当前是哪个角色」
+      '<button class="pf-menu-item" type="button" role="menuitem" data-act="import-open">' +
         '<span class="pf-menu-text">导入 PNG</span>' +
         '<span class="pf-menu-ico"><re-icon icon="gallery-download" size="18"></re-icon></span>' +
-      '</div>' +
-      '<div class="pf-menu-item is-idle">' +
-        '<span class="pf-menu-text">导出 PNG</span>' +
-        '<span class="pf-menu-ico"><re-icon icon="gallery-send" size="18"></re-icon></span>' +
-      '</div>' +
+      '</button>' +
     '</div>' +
-    pfGroupModalHtml()
+    pfGroupModalHtml() +
+    pfImportModalHtml() +
+    // 文件框藏在页面里，选卡时才 click()；放进滚动区会跟着页面滚
+    '<input class="pf-file" type="file" accept="image/png" hidden>'
 
   app.appendChild(el)
 
@@ -358,6 +362,8 @@ function buildProfilePage() {
   _pfActionsEl = el.querySelector('.pf-actions')
   _pfGroupModalEl = el.querySelector('.pf-group-modal')
   _pfGroupListEl = el.querySelector('.pf-group-modal .api-modal-list')
+  _pfImportModalEl = el.querySelector('.pf-import-modal')
+  _pfImportFileEl = el.querySelector('.pf-file')
 
   _pfTabEls = []
   var tabEls = el.querySelectorAll('.pf-tab')
@@ -383,6 +389,29 @@ function pfGroupModalHtml() {
              '<div class="api-modal-list scroll-area"></div>' +
              '<div class="api-modal-foot">' +
                '<button class="api-btn" type="button" data-act="group-close">取消</button>' +
+             '</div>' +
+           '</div>' +
+         '</div>'
+}
+
+// 导入入口：两条路排在一起，酒馆卡本期只显示不响应。
+// 用弹窗而不是直接开文件框 —— 菜单那一行以后还要能进第二种格式
+function pfImportModalHtml() {
+  return '<div class="api-modal pf-import-modal" hidden>' +
+           '<div class="api-modal-scrim" data-act="import-close"></div>' +
+           '<div class="api-modal-card pf-confirm-card" role="dialog" aria-modal="true" aria-label="导入角色卡">' +
+             '<div class="api-modal-head">' +
+               '<h2 class="api-modal-title">导入角色卡</h2>' +
+               '<div class="api-modal-eyebrow">IMPORT</div>' +
+             '</div>' +
+             '<div class="pf-confirm-text">PNG 只认本机导出的角色卡。</div>' +
+             '<div class="pf-confirm-btns">' +
+               '<button class="api-btn api-btn-primary" type="button" data-act="import-png">' +
+                 '<re-icon icon="gallery-download" size="' + PF_ICON_SIZE + '"></re-icon>导入 PNG' +
+               '</button>' +
+               // 本期只显示，不绑任何事件：不开文件框、不解析、也不弹「开发中」
+               '<div class="api-btn pf-btn-idle">导入酒馆卡</div>' +
+               '<button class="api-btn" type="button" data-act="import-close">取消</button>' +
              '</div>' +
            '</div>' +
          '</div>'
@@ -433,6 +462,8 @@ function pfBindPageEvents(el) {
     pfOpenDetail('edit', card.getAttribute('data-id'))
   })
 
+  _pfImportFileEl.addEventListener('change', pfReadImportFile)
+
   _pfSearchInputEl.addEventListener('input', function() {
     // 角色数量是个位数到几十，不加防抖 —— 防抖只会凭空增加输入延迟
     _pfQuery = this.value
@@ -458,6 +489,9 @@ function pfHandleAction(act) {
   if (act === 'new-char') { pfCloseMenu(); pfOpenDetail('create', 'char'); return }
   if (act === 'new-npc') { pfCloseMenu(); pfOpenDetail('create', 'npc'); return }
   if (act === 'group-close') { pfCloseGroupModal(); return }
+  if (act === 'import-open') { pfCloseMenu(); pfOpenImportModal(); return }
+  if (act === 'import-close') { pfCloseImportModal(); return }
+  if (act === 'import-png') { pfPickImportFile(); return }
 }
 
 // ===== 可折叠搜索行 =====
@@ -606,6 +640,66 @@ function pfSelectGroup(name) {
   pfCloseGroupModal()
   pfRenderTabs()
   pfRenderList()
+}
+
+// ===== 导入角色卡 =====
+function pfOpenImportModal() {
+  if (!_pfImportModalEl) return
+  _pfImportModalEl.hidden = false
+  // 强制同步重排，让关闭态先生效再加 show，否则没有淡入 / 缩放动画
+  void _pfImportModalEl.offsetHeight
+  _pfImportModalEl.classList.add('show')
+}
+
+function pfCloseImportModal() {
+  if (!_pfImportModalEl) return
+  _pfImportModalEl.classList.remove('show')
+  _pfImportModalEl.hidden = true
+}
+
+function pfPickImportFile() {
+  pfCloseImportModal()             // 先收起来，否则文件框回来时它还盖在页面上
+  _pfImportFileEl.value = ''       // 不清空就选不了同一个文件第二次
+  _pfImportFileEl.click()
+}
+
+function pfReadImportFile() {
+  var file = _pfImportFileEl.files && _pfImportFileEl.files[0]
+  // 取消系统文件选择时 change 不触发；这里只兜住拿不到文件的异常情况
+  if (!file) return
+
+  readProfileCard(file, function(card, reason) {
+    if (!card) { showToast(reason); return }
+    pfAddImported(card)
+  })
+}
+
+// 永远新建一条，不覆盖本机任何角色，所以 id 现取现给 —— 卡面上的 CARD ID 只是它出生时的号。
+// 分组和收藏是本机的整理方式，不跟着卡走；时间戳按导入这一刻算
+function pfAddImported(card) {
+  var src = pfNormalizeChar(card)
+  var c = pfNewChar(src.type)      // 新 id、group 空、favorite false，都由它给
+  var keys = ['avatar', 'name', 'gender', 'identity', 'profileDescription',
+              'accountId', 'password', 'nickname', 'signature', 'phone']
+  for (var i = 0; i < keys.length; i++) c[keys[i]] = src[keys[i]]
+  c.createdAt = Date.now()
+  c.updatedAt = c.createdAt
+
+  var next = _pfChars.concat([c])
+  if (!pfPersist(next)) {
+    showToast('导入失败，浏览器不允许本地存储')
+    return                         // 内存里的数据保持干净，不能假装导进来了
+  }
+  _pfChars = next
+
+  // 导进来的角色不收藏、没分组，停在 SPECIAL 或某个分组上会看不见它，切到它所属的分类；
+  // 搜索词同理，留着会把刚导入的这条筛掉
+  _pfTab = c.type === 'npc' ? 'npc' : 'char'
+  _pfGroup = ''
+  _pfQuery = ''
+  _pfSearchInputEl.value = ''
+  pfRenderAll()
+  showToast('已导入「' + pfNameOf(c) + '」')
 }
 
 // ===== 精选角色卡 =====
@@ -854,9 +948,9 @@ function pfRenderList() {
 function pfEmptyText() {
   if (_pfQuery.trim()) return '没有匹配的角色'
   if (!_pfChars.length) return ''                   // 一个角色都没有：底部两颗新建按钮已经说清楚了
-  if (_pfTab === 'special') return '还没有收藏的角色'
-  if (_pfTab === 'char') return '还没有 CHAR 角色'
-  if (_pfTab === 'npc') return '还没有 NPC 角色'
+  if (_pfTab === 'special') return '暂时没有收藏的角色'
+  if (_pfTab === 'char') return '暂时没有 CHAR 角色'
+  if (_pfTab === 'npc') return '暂时没有 NPC 角色'
   return '这个分组下还没有角色'
 }
 
@@ -906,7 +1000,13 @@ function buildProfileDetail() {
         '<button class="pf-back" type="button" aria-label="返回">' +
           '<re-icon icon="chevron-left" size="20"></re-icon>' +
         '</button>' +
-        '<button class="pf-done" type="button" data-act="done">DONE</button>' +
+        // 导出与 DONE 必须包在一起：直接并排三个，space-between 会把导出甩到正中间
+        '<div class="pf-detail-acts">' +
+          '<button class="pf-round pf-export" type="button" data-act="export" aria-label="导出角色卡 PNG">' +
+            '<re-icon icon="gallery-send" size="18"></re-icon>' +
+          '</button>' +
+          '<button class="pf-done" type="button" data-act="done">DONE</button>' +
+        '</div>' +
       '</div>' +
 
       '<div class="pf-hero">' +
@@ -992,6 +1092,7 @@ function buildProfileDetail() {
   _pfTabsEl = el.querySelector('.pf-panel-tabs')
   _pfGenderModalEl = el.querySelector('.pf-gender-modal')
   _pfGenderListEl = el.querySelector('.pf-gender-modal .api-modal-list')
+  _pfExportBtnEl = el.querySelector('.pf-export')
   _pfDelSecEl = el.querySelector('.pf-delete-sec')
   _pfDelModalEl = el.querySelector('.pf-del-modal')
   _pfDelNameEl = el.querySelector('.pf-del-name')
@@ -1158,6 +1259,7 @@ function pfBindField(key, input) {
 
 function pfHandleDetailAction(act) {
   if (act === 'done') { pfSaveDraft(true); return }
+  if (act === 'export') { pfExportCard(); return }
   if (act === 'avatar') { pfPickAvatar(); return }
   if (act === 'pick-gender') { pfOpenGenderModal(); return }
   if (act === 'gender-close') { pfCloseGenderModal(); return }
@@ -1230,6 +1332,7 @@ function pfCloseDetail() {
   pfCloseDelModal()
   pfCloseConfirm()
   closeAvatarPicker()
+  closeProfileExport()
   _pfDraft = null
   _pfClean = ''
   _pfDetailEl.classList.remove('show')
@@ -1286,8 +1389,9 @@ function pfFillDetail() {
   pfPaintSummary()
   pfPaintAccountError()
 
-  // 还没落地的新角色没什么可删，删除入口整块收起
+  // 还没落地的新角色没什么可删、也没什么可导出，两个入口一起收起
   _pfDelSecEl.hidden = _pfMode === 'create'
+  _pfExportBtnEl.hidden = _pfMode === 'create'
 
   _pfClean = pfSnapshot(_pfDraft)     // 从这一刻起才算「改过」
 }
@@ -1375,6 +1479,14 @@ function pfSelectGender(v) {
   pfCloseGenderModal()
 }
 
+// ===== 导出角色卡 PNG =====
+// 导出的是屏幕上这一版，包含还没点 DONE 的修改；出图与嵌数据都在 profile-export.js 里
+function pfExportCard() {
+  if (!_pfDraft || _pfMode === 'create') return
+  pfReadForm()
+  openProfileExport(pfNormalizeChar(_pfDraft))
+}
+
 // ===== 头像：调共享弹窗，只改草稿 =====
 function pfPickAvatar() {
   openAvatarPicker(_pfDraft.avatar, function(url) {
@@ -1436,7 +1548,8 @@ function pfSaveDraft(close) {
   _pfChars = next
   _pfDraft = pfNormalizeChar(saved)
   _pfMode = 'edit'                 // 新建的这条已经落地，之后再保存就是替换
-  _pfDelSecEl.hidden = false       // 落地了才有得删
+  _pfDelSecEl.hidden = false       // 落地了才有得删、有得导出
+  _pfExportBtnEl.hidden = false
   _pfClean = pfSnapshot(_pfDraft)  // 保存过了，再点返回不该再问
   pfRenderAll()
 
@@ -1483,6 +1596,7 @@ function openProfilePage() {
   // 每次打开都回到干净的初始态。此时页面还在屏幕外，不会看到重置的过程。
   pfCloseMenu()
   pfCloseGroupModal()
+  pfCloseImportModal()
   _pfSearchOpen = false
   _pfSearchEl.classList.remove('is-open')
   _pfSearchInputEl.value = ''
@@ -1518,6 +1632,7 @@ function closeProfilePage() {
 
   pfCloseMenu()
   pfCloseGroupModal()
+  pfCloseImportModal()
   pfCloseDetail()                  // 详情页在它上面，不能留在屏幕上
 
   // 先把主屏恢复出来再滑出，否则滑出过程中背后是空的

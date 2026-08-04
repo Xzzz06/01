@@ -858,9 +858,9 @@ function wbRowHtml(b) {
 function wbEmptyText(base) {
   if (_wbQuery.trim()) return '没有匹配的世界书'
   if (!_wbBooks.length) return ''      // 一本都没有时不留提示，底部两个按钮已经说明了下一步
-  if (_wbCat && !base.length) return '「' + _wbCat + '」分类下还没有世界书'
-  if (_wbScope === 'global') return '这里还没有全局世界书'
-  if (_wbScope === 'local') return '这里还没有局部世界书'
+  if (_wbCat && !base.length) return '「' + _wbCat + '」分类暂时没有世界书'
+  if (_wbScope === 'global') return '暂时没有全局世界书'
+  if (_wbScope === 'local') return '暂时没有局部世界书'
   return '没有可显示的世界书'
 }
 

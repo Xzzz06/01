@@ -673,6 +673,14 @@ button.pf-menu-item:active .pf-menu-ico {
   min-height: 40px;
 }
 
+/* 导出钮与 DONE 同排靠右，间距与列表页顶栏的两个圆钮一致 */
+.pf-detail-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .pf-done {
   min-width: 72px;
   height: 40px;
@@ -903,6 +911,10 @@ button.pf-menu-item:active .pf-menu-ico {
 
 /* 弹窗里的角色名跟正文同字号，只靠颜色提一档 */
 .pf-del-name { color: var(--c-text); }
+
+/* 导入弹窗里的「导入酒馆卡」本期不绑任何事件，用最弱字色标明它现在不响应。
+ * 它是 div 不是 button，本来就点不动，这里只补视觉 */
+.pf-btn-idle { color: var(--c-hint); }
 
 /* ===== 分页选择器：排在分组下方，跟着页面一起滚 ===== */
 /* 底色与指示块保持 API 页原样（--c-surface-2 槽 + 白滑块），不另加白底和阴影 */

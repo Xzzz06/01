@@ -1,0 +1,135 @@
+/* ===== 角色卡导出弹窗 ===== */
+/* 设计与理由见 PROMPT/09_角色档案页.md
+ * 骨架与共享头像弹窗（css/avatar-picker.css）同参数，只写差异。
+ * 本文件禁止出现 backdrop-filter 和 will-change。
+ * 卡片本身不在这里画 —— 那是 js/profile-export.js 在画布上画出来的一张图。 */
+.px-modal {
+  position: absolute;          /* #app 是 position: relative，见 base.css */
+  inset: 0;
+  z-index: 12;                 /* 与头像弹窗同层：高于详情页的 11，低于 .dev-banner 的 20 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(24px + var(--sat)) 20px calc(24px + var(--sab));
+
+  /* .api-btn 读的两个变量，值与 .pf-detail 保持一致 */
+  --btn-h: 46px;
+  --press-bg: var(--c-surface-3);
+}
+
+/* hidden 属性来自 UA 样式表，上面的 display 会盖掉它，这里补一条更高优先级的 */
+.px-modal[hidden] { display: none; }
+
+.px-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);   /* 纯色遮罩，本文件禁用 backdrop-filter */
+  touch-action: none;                /* 在遮罩上拖动不会带着后面的页面滚 */
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+.px-modal.show .px-scrim { opacity: 1; }
+
+.px-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+  max-height: 100%;
+  padding: 22px 18px 18px;
+  border-radius: 28px;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+  overscroll-behavior: contain;      /* 卡片滚到头不把滚动链传给背后的页面 */
+  -webkit-overflow-scrolling: touch;
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.px-modal.show .px-card {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 顺序与全站页面顶栏一致：中文标题在上、英文小标题在下 */
+.px-title {
+  margin: 0;
+  text-align: center;
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-text);
+}
+
+.px-eyebrow {
+  margin: -5px 0 4px;
+  text-align: center;
+  /* letter-spacing 会在最后一个字母后面也加一份，居中文本要补等量左边距抵消 */
+  margin-left: 0.18em;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+/* 高度由 JS 按出图比例写进 padding-top：图还没生成时这块就已经是最终尺寸，
+ * 不会等图落地再把卡片顶高一次、连带整张弹窗重新居中。
+ * padding 百分比按容器宽度算，与 .ap-stage 同一套做法 —— 不用 aspect-ratio，老 iOS Safari 不认它。
+ * 这里的底色只在图还没上屏的那几百毫秒里露出来 */
+.px-stage {
+  position: relative;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--c-surface-2);
+}
+
+/* 全局 * 选择器关掉了长按菜单和取词，这张图必须逐条开回来，否则长按存不了图 */
+.px-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-touch-callout: default;
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+.px-img:not([src]) { display: none; }
+
+.px-tip {
+  text-align: center;
+  font-size: var(--row-value-size);
+  line-height: 1.4;
+  color: var(--c-sub);
+}
+
+.px-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 2px;
+}
+/* 保存是 <a>，不清掉下划线会比旁边的 <button> 多一条线 */
+.px-save { text-decoration: none; }
+
+/* 还没出图时 <a> 没有 href，点了什么都不会发生，用最弱字色说明它现在不响应 */
+.px-save.is-idle {
+  background: var(--c-surface-2);
+  color: var(--c-hint);
+  pointer-events: none;
+}
+
+/* 减弱动态效果：弹窗直接显示 / 隐藏，按钮不再缩放 */
+@media (prefers-reduced-motion: reduce) {
+  .px-scrim,
+  .px-card { transition: none; }
+  .px-card { transform: none; }
+  .px-modal.show .px-card { transform: none; }
+  .px-actions .api-btn:active { transform: none; }
+}
