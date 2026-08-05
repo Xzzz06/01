@@ -117,7 +117,7 @@ export async function handleGroupMessage(input: {
 
   if (out.ok) {
     await audit('activation.verified', out.qq, { groupId: input.groupId })
-    const extra = out.revokedOldest ? '（已有的最旧一个激活码同时失效）' : ''
+    const extra = out.revokedOldest ? '「获取次数超过限制，旧激活码失效。」' : ''
     // 回复里绝不重复完整激活码：群里所有人都看得见
     await replyToGroup(input.groupId, input.userId, '激活成功，请回到 Qu Phone 登录。' + extra)
     return

@@ -94,7 +94,7 @@ function openApp(appId) {
 
   // 已经有真实页面的应用在这里分流，其余仍走「功能开发中」横幅
   if (appId === 'chat') {
-    openChatRegisterPage()        // chat-register.js 提供
+    openChatApp()                 // chat-main.js 提供：按有没有账号分流到注册页 / 主页面
     return
   }
   if (appId === 'settings') {

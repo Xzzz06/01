@@ -36,6 +36,9 @@
     visibility 0s;
 }
 
+/* 与聊天主页面接力时用：退场的一方直接消失，两页不做交叉动画 */
+.cr-page.is-swap { transition: none; }
+
 /* hidden 属性来自 UA 样式表，本文件里的 display 声明会盖掉它，补一条更高优先级的 */
 .cr-page [hidden] { display: none; }
 

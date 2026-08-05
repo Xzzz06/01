@@ -384,7 +384,7 @@ function imgOpenaiPanelHtml() {
              '</div>' +
            '</div>' +
            apiKeyFieldHtml('img-oa-key', 'API Key', 'sk-...') +
-           '<div class="img-note">自建或本地服务不校验鉴权时，API Key 可以留空，请求就不带 Authorization 头。</div>' +
+           '<div class="img-note">自建或本地服务不校验鉴权时，API Key 可以留空。</div>' +
 
            '<div class="api-section-label">Model</div>' +
            '<button class="api-action" type="button" data-act="fetch-models">' +

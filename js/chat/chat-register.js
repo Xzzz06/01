@@ -1,11 +1,13 @@
 // ===== 聊天注册页 =====
-// 设计与理由见 PROMPT/13_聊天注册页.md
-// 主屏点 Chat 进入的一级页。本期纯 UI：不落盘、不建账号，每次打开都是一张空表单。
+// 设计与理由见 PROMPT/13_聊天注册页.md、PROMPT/17_聊天主页面.md
+// 还没有账号时点 Chat 进入的一级页，注册成功后接力给聊天主页面。
 // 页面首次打开才创建、之后常驻 DOM 复用，关闭时不 remove()。
 //
 // 依赖：home.js（escapeHtml / showToast）、setting-api.js（.api-field-box / .api-input /
 //       .api-eye / .api-btn 样式与 apiBindEye()）、avatar-picker.js（选头像与 AVATAR_FALLBACK）、
 //       profile.js（PF_ACCOUNT_RE）。因此本文件必须排在以上文件之后加载。
+// 提交时调 chat-main.js 的 ctRegisterDone() / openChatMainPage()，那个文件排在本文件之后，
+// 只在用户点下去时才会用到，解析期不依赖。
 
 var CR_SLIDE = 300               // 必须与 css/chat/chat-register.css .cr-page 的 transition 一致
 
@@ -198,7 +200,7 @@ function crPaintIdError() {
 }
 
 // ===== 提交 =====
-// 本期不落盘、不建账号：只校验这一张表单，通过就提示一句并退回主屏
+// 校验通过就把账号交给 chat-main.js 落盘，成功后直接进聊天主页面
 function crSubmit() {
   if (!crRequire('name', '请填写姓名')) return
   if (!crRequire('chatId', '请填写 Chat ID')) return
@@ -212,8 +214,19 @@ function crSubmit() {
 
   if (!crRequire('password', '请设置密码')) return
 
+  // 存不下时 ctRegisterDone() 自己弹提示，这里留在原页，表单不清
+  if (!ctRegisterDone({
+    name: _crFieldEls.name.value.trim(),
+    nickname: _crFieldEls.nickname.value.trim(),
+    chatId: _crFieldEls.chatId.value.trim(),
+    password: _crFieldEls.password.value,
+    mask: _crFieldEls.mask.value,
+    avatar: _crAvatar
+  })) return
+
+  crHideNow()                      // 主屏留给主页面接手，这里不恢复
+  openChatMainPage()
   showToast('注册成功')
-  closeChatRegisterPage()
 }
 
 // 缺哪个就聚焦哪个：只报第一个，一次弹一条提示
@@ -290,5 +303,23 @@ function closeChatRegisterPage() {
   if (home) home.style.visibility = ''
 
   _crEl.classList.remove('show')
+  _crEl.setAttribute('aria-hidden', 'true')
+}
+
+// 与聊天主页面接力时用：本页直接消失，不播滑出动画，也不碰主屏
+function crHideNow() {
+  if (!_crEl) return
+
+  if (_crTimer !== null) {
+    clearTimeout(_crTimer)
+    _crTimer = null
+  }
+
+  closeAvatarPicker()
+
+  _crEl.classList.add('is-swap')
+  _crEl.classList.remove('show')
+  void _crEl.offsetHeight
+  _crEl.classList.remove('is-swap')
   _crEl.setAttribute('aria-hidden', 'true')
 }
