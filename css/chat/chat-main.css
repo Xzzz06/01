@@ -1,0 +1,670 @@
+/* ===== 聊天主页面 ===== */
+/* 设计与理由见 PROMPT/17_聊天主页面.md
+ * 本文件禁止出现 backdrop-filter 和 will-change，滑入只动 transform。 */
+.ct-page {
+  /* setting-api.css 的 .api-header / .api-modal / .api-btn / .api-field-box 会读这几个变量，
+   * 值必须与 .api-page 保持一致 */
+  --card-radius: 20px;
+  --card-radius-in: 5px;
+  --card-gap: 2px;
+  --card-bg: var(--c-surface-2);
+  --press-bg: var(--c-surface-3);
+  --field-h: 48px;
+  --btn-h: 46px;
+
+  --ct-avatar: 52px;             /* 列表行头像，会话行与联系人行必须同一颗 */
+  /* 行名比 --page-title-size 小、比 --row-name-size 大，:root 里没有这一档，
+   * 本页局部定义一次，聊天页与通讯录页共用 */
+  --ct-row-name-size: 16px;
+  /* 本页的灰只有这两档：白底上的灰块要浅，深了会压过内容 */
+  --ct-fill: var(--c-surface);
+  --ct-fill-press: var(--c-surface-2);
+
+  position: absolute;            /* #app 是 position: relative，见 base.css */
+  inset: 0;
+  z-index: 10;                   /* 一级页，与设置页 / 档案页 / 注册页同级 */
+  display: flex;
+  flex-direction: column;
+  /* 与其余一级页反过来：页面底白、卡片与行灰。必须不透明，完整盖住主屏 */
+  background: var(--c-bg);
+
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s linear 0.3s;
+}
+
+.ct-page.show {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s;
+}
+
+/* 与注册页接力时用：退场的一方直接消失，两页不做交叉动画 */
+.ct-page.is-swap { transition: none; }
+
+/* hidden 属性来自 UA 样式表，本文件里的 display 声明会盖掉它，补一条更高优先级的 */
+.ct-page [hidden] { display: none; }
+
+/* ===== 顶栏 ===== */
+/* 骨架直接复用 .api-header / .api-back / .api-title / .api-subtitle，这里只补右侧圆钮与外框 */
+.ct-header {
+  flex: none;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(12px + var(--sat)) 20px 0;
+}
+
+/* 与 .api-back 同款同尺寸，镜像到右边，标题仍然相对整页居中 */
+.ct-round {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--c-text);          /* reicon 内部用 currentColor */
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+
+/* 两颗圆钮跟着本页的浅灰走：setting-api.css 给 .api-back 的是灰底页上的灰，
+ * 搬到白底页上会显得脏，这里连返回键一起改 */
+.ct-page .api-back,
+.ct-round { background: var(--ct-fill); }
+.ct-page .api-back:active,
+.ct-round:active {
+  transform: scale(0.88);
+  background: var(--ct-fill-press);
+}
+
+/* ===== 滚动区与面板 ===== */
+.ct-body {
+  flex: 1;                       /* .scroll-area 不带 flex: 1 */
+  min-height: 0;
+  padding: 0 20px 24px;
+}
+
+.ct-panel { display: none; }
+.ct-panel.is-active { display: block; }
+
+/* ===== 资料头：顶栏已经写了页面名，这里只放昵称与 Chat ID ===== */
+/* 聊天页是「头像在左、两颗图标在右」，通讯录页整个反过来，见 .ct-hero.is-side */
+.ct-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+/* padding 必须清零：<button> 自带内边距，不清会把里面的头像压成椭圆 */
+.ct-hero-avatar {
+  flex: none;
+  position: relative;            /* 通讯录页的加号角标以它为基准 */
+  box-sizing: content-box;       /* 圈的粗细加在 56 之外，头像本体始终是 56 的正圆 */
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  transition: transform 0.15s var(--ease);
+}
+.ct-hero-avatar img {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--ct-fill);
+}
+.ct-hero-avatar:active { transform: scale(0.96); }
+
+.ct-hero-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 聊天页的名字与头像、两颗图标挤在一行，用二级标题字号才不会顶出去；
+ * 通讯录页名字独占一行，下面换回一级页大标题 */
+.ct-hero-name {
+  font-size: var(--page-title-size);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ct-hero-id {
+  margin-top: 4px;
+  font-size: var(--row-name-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 通讯录页：文字在左、头像在右，头像带一圈描边，加号贴在它右下角 */
+.ct-hero.is-side { align-items: center; }
+
+.ct-hero.is-side .ct-hero-avatar {
+  padding: 3px;
+  border: 1px solid var(--c-border-m);
+  background: var(--c-bg);
+}
+
+.ct-hero-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-sm);
+  color: var(--c-text);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.ct-hero-badge:active {
+  transform: scale(0.9);
+  background: var(--ct-fill);
+}
+
+/* 加号用两根线自己画：reicon 的 plus 是填充路径，粗细没法从外面调。
+ * 1.5px 比原来的 2px 收一档，仍然比 reicon 的 plus 实一点 */
+.ct-hero-badge::before,
+.ct-hero-badge::after {
+  content: '';
+  position: absolute;
+  border-radius: 1px;
+  background: currentColor;
+}
+.ct-hero-badge::before {
+  width: 10px;
+  height: 1.5px;
+}
+.ct-hero-badge::after {
+  width: 1.5px;
+  height: 10px;
+}
+
+/* 通知与九宫格只是排版占位：本期不响应点击，用最弱字色标明 */
+.ct-hero-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--c-hint);
+}
+
+.ct-hero-sub {
+  margin-top: 12px;
+  font-size: var(--row-value-size);
+  line-height: 1.4;
+  color: var(--c-hint);
+}
+
+/* ===== 搜索行：聊天页与通讯录页各一条，都常驻、不做折叠 ===== */
+.ct-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  margin-top: 20px;
+  padding: 0 18px;
+  border-radius: 26px;
+  background: var(--ct-fill);
+  color: var(--c-hint);
+}
+.ct-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  color: var(--c-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ct-search input::placeholder { color: var(--c-hint); }
+.ct-search input::-webkit-search-decoration,
+.ct-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+/* ===== 四项选择行：Chats / Groups / Friends / folder ===== */
+/* 一排纯文字，没有卡槽也没有滑块：选中的那项转深加粗，其余压灰。
+ * 四项作为一整组居中，folder 跟在 Friends 后面，不推到屏幕边 */
+.ct-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 22px;
+}
+
+.ct-tab {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-hint);
+  white-space: nowrap;
+  transition: color var(--dur) var(--ease);
+}
+.ct-tab.is-active {
+  color: var(--c-text);
+  font-weight: 600;
+}
+.ct-tab:active { color: var(--c-sub); }
+
+.ct-tab-folder {
+  min-width: 0;
+  color: var(--c-sub);
+}
+
+.ct-tab-folder-name {
+  min-width: 0;
+  font-size: var(--row-name-size);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 分组小节 ===== */
+.ct-list { margin-top: 18px; }
+
+.ct-group + .ct-group { margin-top: 18px; }
+
+.ct-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 4px 8px;
+  text-align: left;
+  color: var(--c-sub);
+}
+
+/* 分组名照原样显示，不转大写 —— 截图里就是用户自己写的大小写 */
+.ct-group-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--row-value-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ct-group-chevron {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--c-hint);
+  transition: transform 0.22s var(--ease);
+}
+/* 折叠用 display 切换而不是高度动画：行数不定，动画只会抖 */
+.ct-group.is-folded .ct-group-chevron { transform: rotate(-90deg); }
+.ct-group.is-folded .ct-group-body { display: none; }
+
+/* 一个分组看着是一整块，行与行之间留 1px 透出页面底色 —— 与设置页 / API 页
+ * 那套「组内相邻的角收小、首尾收大」是同一个做法，只是缝比它们再窄一档 */
+.ct-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* ===== 会话行 / 联系人行：同一套行，只差右侧内容 ===== */
+.ct-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: var(--card-radius-in);
+  background: var(--ct-fill);
+  transition: background var(--dur) var(--ease);
+}
+.ct-row:active { background: var(--ct-fill-press); }
+
+/* 一组里的行不会被筛掉，首尾的大圆角交给 :first-child / :last-child，不必用 JS 打类 */
+.ct-group-body .ct-row:first-child {
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+}
+.ct-group-body .ct-row:last-child {
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+/* 行是 <button>，里面只能放行内元素，两行文字必须自己转块级 */
+.ct-row-avatar {
+  flex: none;
+  display: block;
+  width: var(--ct-avatar);
+  height: var(--ct-avatar);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--c-surface-2);
+}
+.ct-row-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;            /* 容器已经切了圆，这里再兜一层，图不会露出方角 */
+  object-fit: cover;
+}
+
+.ct-row-main {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+
+.ct-row-name {
+  display: block;
+  font-size: var(--ct-row-name-size);
+  font-weight: var(--page-title-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ct-row-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ct-row-sub.is-empty { color: var(--c-hint); }
+
+.ct-row-time {
+  flex: none;
+  display: block;
+  align-self: flex-start;
+  padding-top: 4px;
+  font-size: var(--label-size);
+  color: var(--c-hint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 空状态文案里的换行由 textContent 带进来，靠 pre-line 生效 */
+.ct-empty {
+  padding: 44px 24px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+  color: var(--c-hint);
+}
+
+/* ===== 我的：资料表单 ===== */
+/* 字段、折叠块直接复用 chat-register.css 的 .cr-field / .cr-fold，这里只写差异 */
+.ct-me-hero {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.ct-me-avatar {
+  width: 96px;
+  height: 96px;
+  padding: 4px;
+  border-radius: 50%;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s var(--ease);
+}
+.ct-me-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--c-surface-2);
+}
+.ct-me-avatar:active { transform: scale(0.96); }
+
+/* Chat ID 注册后不可改，做成一行只读值，点一下复制 */
+.ct-me-static {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: var(--field-h);
+  padding: 0 16px;
+  text-align: left;
+  border-radius: 24px;
+  background: var(--c-surface-2);
+  transition: background var(--dur) var(--ease);
+}
+.ct-me-static:active { background: var(--press-bg); }
+
+.ct-me-static-val {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--row-name-size);
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ct-me-static-ico {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--c-hint);
+}
+
+/* 两颗按钮各占一行：保存是常用动作，注销要离它远一点 */
+.ct-me-btns { margin-top: 28px; }
+.ct-me-btns .api-btn { width: 100%; }
+.ct-me-btns .api-btn + .api-btn { margin-top: 12px; }
+
+/* ===== 底部导航 ===== */
+.ct-nav {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--c-border);
+  background: var(--c-bg);
+  /* 安全区一律用加法，不能用 max() */
+  padding: 6px 12px calc(6px + var(--sab));
+}
+
+.ct-nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 0;
+  color: var(--c-hint);
+  transition: color var(--dur) var(--ease);
+}
+.ct-nav-item.is-active { color: var(--c-text); }
+.ct-nav-item:active { color: var(--c-accent-dark); }
+
+/* MOMENTS 本期没有页面，只占位：不响应点击，也不参与选中态 */
+.ct-nav-item.is-idle { pointer-events: none; }
+
+.ct-nav-label {
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ===== 加好友 / 档案导入弹窗 ===== */
+/* 弹窗骨架复用 .api-modal，这里只写行的样子 */
+.ct-find-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+  overscroll-behavior: contain;   /* 列表滚到头不把滚动链传给背后的 .ct-body */
+}
+
+.ct-find {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 14px;
+  text-align: left;
+  border-radius: var(--card-radius-in);
+  background: var(--card-bg);
+  transition: background var(--dur) var(--ease);
+}
+.ct-find:active { background: var(--press-bg); }
+
+/* 首尾两行收大角，与 .api-model 那一组的观感一致。
+ * 这里能用 :first-child / :last-child —— 列表里不掺别的元素，也不做筛选隐藏 */
+.ct-find-list .ct-find:first-child {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.ct-find-list .ct-find:last-child {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+
+.ct-find.is-idle {
+  color: var(--c-hint);
+  pointer-events: none;           /* 已添加 / 没有 Chat ID 的角色不响应点击 */
+}
+
+.ct-find-avatar {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--c-surface-3);
+}
+.ct-find-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ct-find-avatar,
+.ct-find-main { display: block; }
+
+.ct-find-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ct-find-name {
+  display: block;
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ct-find:not(.is-idle) .ct-find-name { color: var(--c-text); }
+
+.ct-find-id {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ct-find.is-idle .ct-find-id { color: var(--c-hint); }
+
+.ct-find-act {
+  flex: none;
+  font-size: var(--row-value-size);
+  color: var(--c-accent-dark);
+  white-space: nowrap;
+}
+.ct-find.is-idle .ct-find-act { color: var(--c-hint); }
+
+/* 弹窗里的提示行：未输入、没找到、档案为空都走它 */
+.ct-modal-tip {
+  flex: none;
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--c-hint);
+}
+
+/* 好友弹窗与注销确认：竖排按钮，与档案页的确认弹窗同款。
+ * 好友那几行由 textContent 带着换行进来，靠 pre-line 生效 */
+.ct-modal-text {
+  flex: none;
+  padding: 0 4px 4px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-line;
+  color: var(--c-sub);
+}
+
+.ct-modal-btns {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+}
+.ct-modal-btns .api-btn { width: 100%; }
+
+/* 两颗按钮并排：.api-modal-foot 默认让按钮占满整行，这里退回等分 */
+.api-modal-foot.ct-modal-foot {
+  display: flex;
+  gap: 10px;
+}
+.api-modal-foot.ct-modal-foot .api-btn { width: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ct-page,
+  .ct-page.show {
+    transform: none;
+    transition: visibility 0s;
+  }
+  .ct-group-chevron { transition: none; }
+  .ct-round,
+  .ct-hero-badge { transition: background var(--dur) var(--ease); }
+  .ct-round:active,
+  .ct-hero-badge:active,
+  .ct-hero-avatar:active,
+  .ct-me-avatar:active { transform: none; }
+}
