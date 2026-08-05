@@ -19,3 +19,9 @@
 
 /service.js
   Cache-Control: no-store
+
+# 数据看板。functions/_middleware.js 已经会发这两个头，这里再写一遍是为了
+# 「哪怕 Function 出错走了兜底路径，也不会被缓存或收录」
+/auth202608/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow

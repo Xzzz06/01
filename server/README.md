@@ -177,8 +177,34 @@ docker run -d --name napcat --restart unless-stopped \
 
 ```bash
 curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:3100/api/admin/overview
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:3100/api/admin/stats?days=30
 curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:3100/api/admin/users/<QQ>
 curl -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
      -d '{"status":"banned"}' http://localhost:3100/api/admin/users/<QQ>/status
 curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:3100/api/admin/napcat/sync
 ```
+
+## 数据看板
+
+上面那些接口的网页版，挂在主站的 `/auth202608`，用固定密码进入。
+设计与部署见 `PROMPT/16_数据看板.md`。
+
+```text
+dashboard/                        # 页面源码，build:site 拷到 dist/auth202608/
+functions/_middleware.js          # 固定密码（Basic Auth），必须在根目录
+functions/auth202608/api/[[path]].js   # 服务端注入 ADMIN_TOKEN 后转发
+_routes.json                      # 把 Functions 限定在 /auth202608/*
+```
+
+`ADMIN_TOKEN` 只存在于 Cloudflare 的环境变量里，不发给浏览器。
+Cloudflare Pages 上要配 `DASH_PASSWORD`（纯 ASCII）和 `ADMIN_TOKEN` 两个 Secret。
+
+本地预览：
+
+```bash
+npm run dev:server     # 真后端
+npm run start:dash     # 另开一个终端，会读 .env.development 拿 ADMIN_TOKEN
+```
+
+然后开 `http://localhost:4100/auth202608/`。用普通的 `./start` 起的话没有 token，
+看板会明确报「本地看板需要 ADMIN_TOKEN」。

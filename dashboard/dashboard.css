@@ -1,0 +1,523 @@
+/* ===== 数据看板 ===== */
+/* 设计与理由见 PROMPT/16_数据看板.md。
+ *
+ * 与 verify.css 同一个道理：本文件自带设计变量和全局重置，不 <link> 也不 @import
+ * css/base.css —— 看板是一张独立页，跟主站的手机壳布局没有任何共用结构，
+ * 挂上 base.css 反而会继承一堆 .device-frame / 禁滚动的规则。
+ * 下面这份 :root 与全局重置从 css/base.css 逐条抄来，那边改了值这里要同步。
+ *
+ * 与全站一致：不出现任何彩色，只用灰阶。图表靠灰度深浅 + 虚线样式区分序列，
+ * 不靠颜色 —— 换成彩色就跟整站的视觉规则冲突了。 */
+
+:root {
+  /* ===== 颜色（同 base.css）===== */
+  --c-bg: #ffffff;
+  --c-surface: #f6f6f6;
+  --c-surface-2: #ededed;
+  --c-surface-3: #e4e4e4;
+  --c-border: rgba(0, 0, 0, 0.05);
+  --c-border-m: rgba(0, 0, 0, 0.09);
+
+  --c-text: #3a3a3a;
+  --c-title: #6e6e6e;
+  --c-sub: #939393;
+  --c-hint: #b8b8b8;
+
+  --c-accent: #8a8a8a;
+  --c-accent-dark: #787878;
+
+  --shadow-sm: 0 1px 6px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.08);
+
+  --r-sm: 8px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 100px;
+
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --dur: 0.2s;
+
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+
+  --font-ui: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --font-size-body: 14px;
+  --title-size: 32px;
+  --title-weight: 600;
+  --metric-size: 28px;
+  --metric-weight: 600;
+  --label-size: 10px;
+  --label-weight: 500;
+  --row-name-size: 14px;
+  --row-name-weight: 450;
+  --row-value-size: 12px;
+
+  /* ===== 三条序列的灰阶（只有这一处定义）===== */
+  --s1: #5c5c5c;   /* 新增用户：最深、实线 */
+  --s2: #969696;   /* 发放激活码：中灰、长虚线 */
+  --s3: #c4c4c4;   /* 登录：最浅、短虚线 */
+}
+
+/* ===== 全局重置（同 base.css，但本页允许整页滚动）===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* 数字一律等宽对齐：表格和指标卡里的数字跳动会让人以为数据在变 */
+  font-variant-numeric: tabular-nums;
+}
+
+h1, h2 { margin: 0; }
+
+/* 看板不是手机页，宽屏下要能一次看完，所以不套 .device-frame 的 440px 上限 */
+.db-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: calc(28px + var(--sat)) 20px calc(40px + var(--sab));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ===== 顶栏 ===== */
+.db-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+
+.db-eyebrow {
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.18em;
+  color: var(--c-hint);
+}
+
+.db-title {
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  color: var(--c-title);
+  line-height: 1.15;
+}
+
+.db-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== 机器人状态 ===== */
+.db-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+  white-space: nowrap;
+}
+
+.db-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-hint);
+  flex: none;
+}
+
+/* 在线 / 离线只用深浅区分，不引入红绿 */
+.db-status[data-state='on'] .db-dot { background: var(--c-accent-dark); }
+.db-status[data-state='on'] { color: var(--c-text); }
+.db-status[data-state='off'] .db-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--c-hint);
+}
+
+.db-btn {
+  height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  font-family: inherit;
+  font-size: var(--row-value-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.db-btn:hover { background: var(--c-surface-3); }
+.db-btn:active { background: var(--c-surface-3); }
+.db-btn[disabled] { opacity: 0.5; cursor: default; }
+
+/* ===== 错误条 ===== */
+.db-error {
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  background: var(--c-bg);
+  border: 1px solid var(--c-border-m);
+  color: var(--c-text);
+  font-size: 13px;
+  box-shadow: var(--shadow-sm);
+}
+
+.db-error-hint {
+  margin-top: 4px;
+  color: var(--c-sub);
+  font-size: 12px;
+}
+
+/* ===== 指标卡 ===== */
+.db-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.db-metric {
+  background: var(--c-bg);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.db-metric-label {
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.08em;
+  color: var(--c-sub);
+}
+
+.db-metric-value {
+  margin-top: 6px;
+  font-size: var(--metric-size);
+  font-weight: var(--metric-weight);
+  color: var(--c-text);
+  line-height: 1.1;
+}
+
+.db-metric-note {
+  margin-top: 2px;
+  font-size: var(--row-value-size);
+  color: var(--c-hint);
+}
+
+/* ===== 卡片 ===== */
+.db-card {
+  background: var(--c-bg);
+  border-radius: var(--r-lg);
+  padding: 18px 20px 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.db-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.db-card-title {
+  font-size: 15px;
+  font-weight: 550;
+  color: var(--c-title);
+}
+
+.db-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 720px) {
+  .db-grid-2 { grid-template-columns: 1fr; }
+  .db-page { padding-left: 14px; padding-right: 14px; }
+  .db-title { font-size: 26px; }
+}
+
+/* ===== 分段卡槽（观感对齐 setting-api.css，类名另起一套）===== */
+.db-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+}
+
+.db-seg button {
+  border: 0;
+  background: transparent;
+  border-radius: var(--r-pill);
+  height: 26px;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--c-sub);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.db-seg button.is-active {
+  background: var(--c-bg);
+  color: var(--c-text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== 趋势图 ===== */
+.db-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.db-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+
+/* 图例的线段样式必须和图里那条线一模一样，否则灰阶太接近时分不出谁是谁 */
+.db-legend-line {
+  width: 18px;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
+}
+
+.db-chart svg { display: block; width: 100%; height: auto; }
+
+.db-readout {
+  margin-top: 8px;
+  min-height: 18px;
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+}
+
+.db-readout b { color: var(--c-text); font-weight: 550; }
+
+/* ===== 横条图（激活码状态 / 审计动作）===== */
+.db-bars { display: flex; flex-direction: column; gap: 10px; }
+
+.db-bar-row {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.db-bar-name {
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-bar-track {
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  overflow: hidden;
+}
+
+.db-bar-fill {
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--c-accent);
+  transition: width 0.4s var(--ease);
+}
+
+.db-bar-value {
+  font-size: var(--row-value-size);
+  color: var(--c-text);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ===== 授权群 ===== */
+.db-groups { display: flex; flex-direction: column; gap: 8px; }
+
+.db-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--c-surface-2);
+}
+
+.db-group-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  color: var(--c-text);
+}
+
+.db-group-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--c-hint);
+}
+
+.db-group-members {
+  font-size: var(--row-value-size);
+  color: var(--c-sub);
+  white-space: nowrap;
+}
+
+/* ===== 用户表 ===== */
+.db-search {
+  height: 32px;
+  width: 180px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-family: inherit;
+  font-size: var(--row-value-size);
+  color: var(--c-text);
+  outline: none;
+}
+
+.db-search::placeholder { color: var(--c-hint); }
+
+/* 窄屏放不下整张表就横向滚它自己，不能让整个页面横向滚 */
+.db-table-wrap { overflow-x: auto; margin: 0 -4px; }
+
+.db-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.db-table th {
+  text-align: left;
+  padding: 0 10px 8px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.06em;
+  color: var(--c-sub);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.db-table th[data-sort]::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 5px;
+  vertical-align: middle;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+}
+
+.db-table th.is-desc::after { border-top: 4px solid var(--c-accent); }
+.db-table th.is-asc::after { border-bottom: 4px solid var(--c-accent); }
+
+.db-table td {
+  padding: 9px 10px;
+  border-top: 1px solid var(--c-border);
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
+.db-table tbody tr { cursor: pointer; }
+.db-table tbody tr:hover td { background: var(--c-surface); }
+
+.db-qq { font-family: var(--font-mono); font-size: 12px; }
+
+.db-muted { color: var(--c-hint); }
+
+.db-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  font-size: 11px;
+  color: var(--c-sub);
+}
+
+/* 封禁是唯一需要一眼看见的异常态：用反色而不是红色 */
+.db-tag.is-banned { background: var(--c-accent-dark); color: var(--c-bg); }
+
+/* 展开的用户详情：不是新的一层弹窗，就在表里多一行 */
+.db-detail td {
+  background: var(--c-surface);
+  white-space: normal;
+  font-size: 12px;
+  color: var(--c-sub);
+}
+
+.db-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px 18px;
+}
+
+.db-detail-grid b { color: var(--c-text); font-weight: 500; }
+
+.db-code-hint { font-family: var(--font-mono); color: var(--c-text); }
+
+/* ===== 最近事件 ===== */
+.db-log { display: flex; flex-direction: column; gap: 0; max-height: 320px; overflow-y: auto; }
+
+.db-log-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--c-border);
+  font-size: 12px;
+}
+
+.db-log-item:first-child { border-top: 0; }
+
+.db-log-time { color: var(--c-hint); flex: none; font-size: 11px; }
+.db-log-action { color: var(--c-text); flex: none; }
+.db-log-qq { font-family: var(--font-mono); color: var(--c-sub); font-size: 11px; }
+.db-log-detail {
+  color: var(--c-hint);
+  font-size: 11px;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-empty {
+  padding: 20px 0;
+  text-align: center;
+  color: var(--c-hint);
+  font-size: var(--row-value-size);
+}
+
+.db-foot {
+  margin-top: 6px;
+  text-align: center;
+  font-size: var(--label-size);
+  letter-spacing: 0.18em;
+  color: var(--c-hint);
+}

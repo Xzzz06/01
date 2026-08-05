@@ -41,6 +41,13 @@ const MIME = {
 // verify.html 在源码里住 auth/，但 app-auth.js 跳的是根路径 —— 与 build:site 的拷贝行为保持一致
 const ALIAS = { '/verify.html': '/auth/verify.html' }
 
+// 数据看板：线上由 Cloudflare Pages Function 挂在 /auth202608，源码在 dashboard/
+const DASH = '/auth202608'
+// 看板要真数据，只能连真的 Fastify —— 上面那套假接口没有 /api/admin/*。
+// 没配 ADMIN_TOKEN 就不转发，本文件"不连后端"的定位保持不变
+const DASH_API = process.env.ADMIN_API_BASE || 'http://127.0.0.1:3100'
+const DASH_TOKEN = process.env.ADMIN_TOKEN || ''
+
 const DAY = 86400000
 
 function json(res, code, body) {
@@ -81,6 +88,39 @@ async function serveFile(res, filePath) {
   res.end(body)
 }
 
+// 看板的取数代理，对应线上的 functions/auth202608/api/[[path]].js。
+// 本地不做密码校验：线上那道 Basic Auth 是给公网用的，本机没有公网
+async function handleDashApi(req, res, path) {
+  if (!DASH_TOKEN) {
+    return json(res, 503, {
+      error: 'not_configured',
+      message: '本地看板需要 ADMIN_TOKEN，用 npm run start:dash 启动。'
+    })
+  }
+  const search = new URL(req.url, `http://${HOST}`).search
+  const target = DASH_API + '/api/admin/' + path.slice(DASH.length + 5) + search
+  try {
+    const upstream = await fetch(target, {
+      method: req.method,
+      headers: { Authorization: 'Bearer ' + DASH_TOKEN },
+      signal: AbortSignal.timeout(10000)
+    })
+    const body = Buffer.from(await upstream.arrayBuffer())
+    res.writeHead(upstream.status, {
+      'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
+      'Content-Length': body.length,
+      'Cache-Control': 'no-store'
+    })
+    res.end(body)
+  } catch (err) {
+    json(res, 504, {
+      error: 'upstream_unreachable',
+      message: '连不上 ' + DASH_API + '，先起 npm run dev:server。',
+      detail: String(err?.name ?? err)
+    })
+  }
+}
+
 const server = createServer(async (req, res) => {
   let path
   try {
@@ -88,6 +128,12 @@ const server = createServer(async (req, res) => {
   } catch {
     return json(res, 400, { error: 'bad_url' })
   }
+
+  // 必须排在 /api/ 判断之前：看板的接口路径里也带 /api/
+  if (path.startsWith(DASH + '/api/')) return handleDashApi(req, res, path)
+  // 线上 /auth202608/* 是 build:site 拷过去的 dashboard/*，本地直接改写前缀
+  if (path === DASH || path === DASH + '/') path = '/dashboard/index.html'
+  else if (path.startsWith(DASH + '/')) path = '/dashboard/' + path.slice(DASH.length + 1)
 
   if (path.startsWith('/api/')) return handleApi(req, res, path)
 

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- 看板要在电脑上看整张表，不锁缩放，也不用 viewport-fit=cover -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- 密码门之外再挂一道：这页永远不该被收录 -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
+
+  <meta name="theme-color" content="#f6f6f6">
+  <link rel="icon" type="image/png" href="/icon/icon_192.png">
+
+  <title>Qu Phone · 数据</title>
+
+  <!-- 本页只引这一个样式表，原因见 dashboard.css 顶部注释。
+       不引 reicon：看板一个图标都没用到，没必要为它多一个外部依赖 -->
+  <link rel="stylesheet" href="dashboard.css?v=1.0.0">
+</head>
+<body>
+
+  <div class="db-page">
+
+    <header class="db-head">
+      <div>
+        <div class="db-eyebrow">QU PHONE</div>
+        <h1 class="db-title">数据</h1>
+      </div>
+      <div class="db-head-right">
+        <div class="db-status" id="db-status"><span class="db-dot"></span><span id="db-status-text">加载中</span></div>
+        <button class="db-btn" id="db-refresh" type="button">刷新</button>
+      </div>
+    </header>
+
+    <div class="db-error" id="db-error" hidden></div>
+
+    <section class="db-metrics" id="db-metrics"></section>
+
+    <section class="db-card">
+      <div class="db-card-head">
+        <h2 class="db-card-title">趋势</h2>
+        <div class="db-seg" id="db-range">
+          <button type="button" data-days="7">7 天</button>
+          <button type="button" data-days="30" class="is-active">30 天</button>
+          <button type="button" data-days="90">90 天</button>
+        </div>
+      </div>
+      <div class="db-legend" id="db-legend"></div>
+      <div class="db-chart" id="db-chart"></div>
+      <!-- 悬停读数落在图下方固定一行，不做浮层：浮层在触屏上点不准也关不掉 -->
+      <div class="db-readout" id="db-readout"></div>
+    </section>
+
+    <div class="db-grid-2">
+      <section class="db-card">
+        <div class="db-card-head"><h2 class="db-card-title">激活码状态</h2></div>
+        <div id="db-codes"></div>
+      </section>
+      <section class="db-card">
+        <div class="db-card-head"><h2 class="db-card-title">授权群</h2></div>
+        <div id="db-groups"></div>
+      </section>
+    </div>
+
+    <section class="db-card">
+      <div class="db-card-head">
+        <h2 class="db-card-title">用户</h2>
+        <input class="db-search" id="db-search" type="search" placeholder="搜 QQ / 昵称"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="db-table-wrap">
+        <table class="db-table">
+          <thead>
+            <tr>
+              <th data-sort="qq">QQ</th>
+              <th data-sort="nickname">昵称</th>
+              <th data-sort="status">状态</th>
+              <th data-sort="issue_count">累计发码</th>
+              <th data-sort="active_codes">有效码</th>
+              <th data-sort="active_sessions">在线设备</th>
+              <th data-sort="groups">在群</th>
+              <th data-sort="last_login_at" class="is-desc">最后登录</th>
+            </tr>
+          </thead>
+          <tbody id="db-users"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="db-grid-2">
+      <section class="db-card">
+        <div class="db-card-head"><h2 class="db-card-title">事件分布</h2></div>
+        <div id="db-actions"></div>
+      </section>
+      <section class="db-card">
+        <div class="db-card-head"><h2 class="db-card-title">最近事件</h2></div>
+        <div class="db-log" id="db-log"></div>
+      </section>
+    </div>
+
+    <div class="db-foot">QU PHONE</div>
+
+  </div>
+
+  <script src="dashboard.js?v=1.0.0"></script>
+
+</body>
+</html>

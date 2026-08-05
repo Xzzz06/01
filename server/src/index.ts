@@ -187,6 +187,114 @@ app.get('/api/admin/overview', async () => {
   }
 })
 
+// 数据看板的唯一数据源。纯 SELECT，不写任何表，也不碰上面几条接口的口径。
+// 分成多条独立查询而不是拼一条大 SQL：每块的取数规则要能单独读懂、单独改。
+// 明文码、token_hash、ip_hash 一概不出现在返回值里
+app.get<{ Querystring: { days?: string } }>('/api/admin/stats', async (req) => {
+  const raw = Number(req.query.days ?? 30)
+  const days = Number.isFinite(raw) ? Math.min(180, Math.max(1, Math.trunc(raw))) : 30
+
+  const [users, codes, sessions, daily, actions, groups, list, recent] = await Promise.all([
+    pool.query(
+      `SELECT COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE status = 'active')::int AS active,
+              COUNT(*) FILTER (WHERE status = 'banned')::int AS banned,
+              COUNT(*) FILTER (WHERE last_login_at > NOW() - INTERVAL '7 days')::int AS active_7d,
+              COUNT(*) FILTER (WHERE last_login_at > NOW() - INTERVAL '30 days')::int AS active_30d,
+              COUNT(*) FILTER (WHERE last_login_at IS NULL)::int AS never_logged_in
+         FROM users`
+    ),
+    pool.query(
+      `SELECT status, COUNT(*)::int AS n FROM activation_codes GROUP BY status`
+    ),
+    pool.query(
+      `SELECT COUNT(*) FILTER (WHERE revoked_at IS NULL AND expires_at > NOW())::int AS active,
+              COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours')::int AS created_24h,
+              COUNT(*) FILTER (WHERE revoked_at IS NOT NULL)::int AS revoked
+         FROM sessions`
+    ),
+    // generate_series 补零：没有任何事件的那天也要出现在数组里，否则前端画出来的折线会
+    // 把两个相隔十天的点连成一段直线，看着像"这十天一直在涨"
+    pool.query(
+      `WITH d AS (
+         SELECT generate_series(
+           date_trunc('day', NOW()) - (($1::int - 1) || ' days')::interval,
+           date_trunc('day', NOW()),
+           INTERVAL '1 day'
+         ) AS day
+       )
+       SELECT to_char(d.day, 'YYYY-MM-DD') AS day,
+              (SELECT COUNT(*) FROM users u
+                WHERE u.created_at >= d.day AND u.created_at < d.day + INTERVAL '1 day')::int AS new_users,
+              (SELECT COUNT(*) FROM activation_codes c
+                WHERE c.issued_at >= d.day AND c.issued_at < d.day + INTERVAL '1 day')::int AS issued,
+              (SELECT COUNT(*) FROM audit_logs a
+                WHERE a.action = 'auth.login'
+                  AND a.created_at >= d.day AND a.created_at < d.day + INTERVAL '1 day')::int AS logins
+         FROM d ORDER BY d.day`,
+      [days]
+    ),
+    pool.query(
+      `SELECT action, COUNT(*)::int AS n FROM audit_logs
+        WHERE created_at > NOW() - (($1::int) || ' days')::interval
+        GROUP BY action ORDER BY n DESC`,
+      [days]
+    ),
+    pool.query(
+      `SELECT g.group_id, g.name,
+              (SELECT COUNT(*) FROM memberships m
+                WHERE m.group_id = g.group_id AND m.active)::int AS members
+         FROM allowed_groups g WHERE g.enabled = TRUE ORDER BY g.group_id`
+    ),
+    // 500 是硬上限：看板要一次画完整张表，分页的复杂度不值得为一个自用后台付
+    pool.query(
+      `SELECT u.qq, u.status,
+              u.activation_request_count::text AS request_count,
+              u.activation_issue_count::text AS issue_count,
+              u.last_login_at, u.last_activation_issued_at, u.created_at,
+              COALESCE(m.nickname, '') AS nickname,
+              (SELECT COUNT(*) FROM activation_codes c
+                WHERE c.qq = u.qq AND c.status = 'active')::int AS active_codes,
+              (SELECT COUNT(*) FROM sessions s
+                WHERE s.qq = u.qq AND s.revoked_at IS NULL AND s.expires_at > NOW())::int AS active_sessions,
+              (SELECT COUNT(*) FROM memberships mm
+                WHERE mm.qq = u.qq AND mm.active = TRUE)::int AS groups
+         FROM users u
+         LEFT JOIN LATERAL (
+           SELECT nickname FROM memberships mm
+            WHERE mm.qq = u.qq AND mm.active = TRUE
+            ORDER BY mm.last_seen_at DESC LIMIT 1
+         ) m ON TRUE
+        ORDER BY u.last_login_at DESC NULLS LAST, u.created_at DESC
+        LIMIT 500`
+    ),
+    // detail 里的 sessionId 是 Session 主键，看板用不到，减掉它省得无谓地多传一份内部 id
+    pool.query(
+      `SELECT action, qq, (detail - 'sessionId') AS detail, created_at
+         FROM audit_logs ORDER BY id DESC LIMIT 60`
+    )
+  ])
+
+  const codeCounts: Record<string, number> = { pending: 0, active: 0, expired: 0, revoked: 0 }
+  for (const row of codes.rows as Array<{ status: string; n: number }>) {
+    codeCounts[row.status] = row.n
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    days,
+    users: users.rows[0],
+    codes: codeCounts,
+    sessions: sessions.rows[0],
+    daily: daily.rows,
+    actions: actions.rows,
+    groups: groups.rows,
+    list: list.rows,
+    recent: recent.rows,
+    napcat: { online: isBotOnline(), checkedAt: botCheckedAt(), mode: config.authMode }
+  }
+})
+
 app.get<{ Params: { qq: string } }>('/api/admin/users/:qq', async (req, reply) => {
   const qq = req.params.qq
   if (!QQ_RE.test(qq)) return reply.code(400).send({ error: 'invalid_qq', message: 'QQ 号格式不对。' })

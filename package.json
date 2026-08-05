@@ -6,12 +6,13 @@
   "description": "Qu Phone QQ 群激活码登录服务端。前端仍是纯静态 ES5，这里只有服务端依赖。",
   "scripts": {
     "start:local": "node scripts/dev-server.mjs",
+    "start:dash": "node --env-file=.env.development scripts/dev-server.mjs",
     "dev:server": "tsx watch --env-file=.env.development server/src/index.ts",
     "start:server": "node --env-file=.env.development server/dist/index.js",
     "start:prod": "node --env-file=.env.production server/dist/index.js",
     "build": "tsc -p server/tsconfig.json",
     "typecheck": "tsc -p server/tsconfig.json --noEmit",
-    "build:site": "rm -rf dist && mkdir -p dist && cp -R index.html manifest.json service.js _headers css js fonts icon auth dist/ && cp auth/verify.html dist/verify.html",
+    "build:site": "rm -rf dist && mkdir -p dist/auth202608 && cp -R index.html manifest.json service.js _headers _routes.json css js fonts icon auth dist/ && cp auth/verify.html dist/verify.html && cp dashboard/index.html dashboard/dashboard.css dashboard/dashboard.js dist/auth202608/",
     "mock:group-message": "tsx --env-file=.env.development scripts/mock-group-message.mjs"
   },
   "dependencies": {
