@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# 一键启动本地免登录调试版。细节见 scripts/dev-server.mjs。
+# 不管在哪个目录敲，都以本文件所在处为项目根
+cd "$(dirname "$0")" || exit 1
+exec node scripts/dev-server.mjs "$@"

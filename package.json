@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Qu Phone QQ 群激活码登录服务端。前端仍是纯静态 ES5，这里只有服务端依赖。",
   "scripts": {
+    "start:local": "node scripts/dev-server.mjs",
     "dev:server": "tsx watch --env-file=.env.development server/src/index.ts",
     "start:server": "node --env-file=.env.development server/dist/index.js",
     "start:prod": "node --env-file=.env.production server/dist/index.js",
