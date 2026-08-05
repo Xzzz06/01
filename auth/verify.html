@@ -132,7 +132,9 @@
     </div>
   </div>
 
-  <script src="/auth/verify.js?v=1.3.0"></script>
+  <!-- api-base.js 必须排在 verify.js 之前：vfFetch 用它的 apiUrl() / API_CREDENTIALS -->
+  <script src="/js/api-base.js?v=1.0.0"></script>
+  <script src="/auth/verify.js?v=1.4.0"></script>
 
 </body>
 </html>

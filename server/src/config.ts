@@ -62,6 +62,14 @@ if (isProd && authModeRaw === 'mock') {
 const cookieSecure = bool('COOKIE_SECURE', isProd)
 if (isProd && !cookieSecure) fail('生产环境不允许 COOKIE_SECURE=false')
 
+// 离线宽限期：API 不可达时前端凭它放行已登录过的设备（见 auth/app-auth.js）。
+// 不能超过 SESSION_DAYS —— Cookie 都过期了还放行，用户进去也是一路 401
+const sessionDays = num('SESSION_DAYS', 30, 1, 365)
+const offlinePassDays = num('OFFLINE_PASS_DAYS', 7, 1, 365)
+if (offlinePassDays > sessionDays) {
+  fail(`OFFLINE_PASS_DAYS（${offlinePassDays}）不能大于 SESSION_DAYS（${sessionDays}）`)
+}
+
 const appOrigin = env('APP_ORIGIN') ?? 'http://localhost:3100'
 if (isProd && !appOrigin.startsWith('https://')) {
   fail('生产环境的 APP_ORIGIN 必须是 https://')
@@ -118,7 +126,8 @@ export const config = {
 
   cookieName: env('SESSION_COOKIE_NAME') ?? 'quphone_session',
   cookieSecure,
-  sessionDays: num('SESSION_DAYS', 30, 1, 365),
+  sessionDays,
+  offlinePassDays,
 
   challengeMinutes: num('ACTIVATION_CHALLENGE_MINUTES', 5, 1, 60),
   maxActiveCodes,
@@ -132,6 +141,3 @@ export const config = {
   loginFailLockThreshold: num('LOGIN_FAIL_LOCK_THRESHOLD', 5, 1, 100),
   loginFailLockMinutes: num('LOGIN_FAIL_LOCK_MINUTES', 30, 1, 24 * 60)
 } as const
-
-// 静态资源根目录：本文件编译后在 server/dist/，源码运行时在 server/src/，两者都要回到仓库根
-export const repoRoot = new URL('../../', import.meta.url).pathname

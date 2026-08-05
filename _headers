@@ -1,4 +1,17 @@
+# Cloudflare Pages 的响应头。服务端只发接口了，页面的安全头只剩这一处。
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  # connect-src 必须留 https: —— 设置页的模型接口是用户自己填的任意地址，
+  # 收紧成白名单会让「测试连接」永远失败，且报错只出现在控制台里
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+
 /index.html
+  Cache-Control: no-store
+
+/verify.html
   Cache-Control: no-store
 
 /manifest.json

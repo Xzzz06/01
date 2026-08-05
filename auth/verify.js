@@ -390,7 +390,7 @@ function vfToast(text) {
 // ===== 接口层 =====
 // 这四个函数是本页与服务端之间唯一的接触面，回调统一 (err, data)。
 // err 是 { message } —— message 直接显示给用户，不能带接口原文或字段名。
-// 一律同源 fetch + credentials: 'same-origin'（方案 §4）。
+// 地址和 credentials 都由 api-base.js 决定：线上是跨源，本地开发是同源。
 
 function vfApiMe(done) {
   // 未登录时这里必然是 401，vfFetch 会走 err 分支 —— 那是正常路径，不是故障
@@ -430,11 +430,12 @@ function vfApiLogin(qq, code, done) {
   vfFetch('POST', '/api/auth/login', null, { qq: qq, activationCode: code }, done)
 }
 
-// 统一出口：只做同源请求，错误信息一律取服务端的 message，取不到就用通用文案
+// 统一出口：错误信息一律取服务端的 message，取不到就用通用文案。
+// 跨源下 CORS 被拒也会落到最后那个 catch，和断网一样是「网络连接失败」
 function vfFetch(method, url, headers, body, done) {
   var opt = {
     method: method,
-    credentials: 'same-origin',
+    credentials: API_CREDENTIALS,
     headers: headers || {}
   }
   if (body) {
@@ -443,7 +444,7 @@ function vfFetch(method, url, headers, body, done) {
   }
 
   var status = 0
-  fetch(url, opt).then(function(res) {
+  fetch(apiUrl(url), opt).then(function(res) {
     status = res.status
     return res.json()['catch'](function() { return {} })
   }).then(function(data) {

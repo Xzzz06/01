@@ -2,13 +2,16 @@
 // 设计与理由见《qu phone登录方案.md》§6.2。
 // 与 verify.js 同住 auth/：登录系统整套单独一个目录，不混进主站的 js/。
 //
-// 这个文件只改善体验，不承担安全职责 —— 真正的拦截在服务端 onRequest（方案 §6.1）。
-// 未登录时 index.html 本身就会被 302 走，根本轮不到这里执行；它管的是另一半：
-// 页面已经打开、Session 中途失效（被挤掉码 / 退群 / 管理员撤销）的那一刻。
+// 前端搬到 Cloudflare Pages 之后，服务端不再发静态文件，也就没有 302 拦截了 ——
+// 这里是唯一的门禁，但它只在客户端，改 devtools 就能绕过。真正的边界只剩接口鉴权。
 //
-// 加载顺序：必须排在 store.js 和 boot.js 之前，boot.js 用 authReady() 包住 startBoot()。
+// API 连不上时靠 localStorage 里的离线通行证决定放不放行，见下面的 authReadPass()。
+//
+// 加载顺序：必须排在 api-base.js 之后、store.js 和 boot.js 之前，
+// boot.js 用 authReady() 包住 startBoot()。
 
 var AUTH_RECHECK_MS = 60000        // 页面回到前台时的最短复查间隔，别让切标签页变成打接口
+var AUTH_PASS_KEY = 'quphone_offline_pass'
 
 var _authAccount = null            // { qq, sessionExpiresAt }，只活在内存里，不写 IndexedDB
 var _authDone = false
@@ -42,9 +45,33 @@ function authFlush() {
   for (var i = 0; i < q.length; i++) q[i]()
 }
 
+// ===== 离线通行证 =====
+// 服务端下发的一个到期时间，存 localStorage，只在 API 连不上时用。
+// 没有签名 —— 挡的是"没登录过的设备趁 API 挂掉进来"，挡不住会改这个文件的人。
+// 存储被禁用（无痕模式 / 配额满）时一律当作没有，宁可踢回登录页也不放行
+function authReadPass() {
+  try {
+    var p = JSON.parse(localStorage.getItem(AUTH_PASS_KEY))
+    return (p && typeof p.exp === 'number' && p.exp > Date.now()) ? p : null
+  } catch (e) {
+    return null
+  }
+}
+
+function authWritePass(qq, exp) {
+  if (typeof exp !== 'number') return
+  try {
+    localStorage.setItem(AUTH_PASS_KEY, JSON.stringify({ qq: qq, exp: exp }))
+  } catch (e) {}
+}
+
+function authClearPass() {
+  try { localStorage.removeItem(AUTH_PASS_KEY) } catch (e) {}
+}
+
 function authFetchMe(done) {
   var status = 0
-  fetch('/api/auth/me', { credentials: 'same-origin' }).then(function(res) {
+  fetch(apiUrl('/api/auth/me'), { credentials: API_CREDENTIALS }).then(function(res) {
     status = res.status
     return res.json()['catch'](function() { return {} })
   }).then(function(data) {
@@ -60,26 +87,33 @@ function authCheck(initial) {
   authFetchMe(function(err, data) {
     if (!err) {
       _authAccount = { qq: data.qq, sessionExpiresAt: data.sessionExpiresAt }
+      // 滑动窗口：每次成功都往后推，常来的人几乎不会遇到通行证过期
+      authWritePass(data.qq, data.offlinePassExpiresAt)
       if (initial) authFlush()
       return
     }
-    // 401/403 才是真的没登录；status 0 是网络问题，保持现状等下一次复查
+    // 401/403 是服务端明确说没登录，通行证必须一起作废，否则封号要等宽限期满才生效
     if (err.status === 401 || err.status === 403) {
       _authAccount = null
+      authClearPass()
       authKickToVerify()
       return
     }
-    // 首屏拿不准时放行，让用户看到界面；服务端每个请求还会再拦一次
-    if (initial) authFlush()
+    // 到这里只剩 status 0：接口连不上。已经在用的页面不动它，一次网络抖动不该踢人
+    if (!initial) return
+    // 首屏则要判通行证：登录过的设备放行，没登录过的挡在外面
+    if (authReadPass()) { authFlush(); return }
+    authKickToVerify()
   })
 }
 
 // 退出：接口成功与否都跳登录页 —— Cookie 是 HttpOnly 前端删不掉，
 // 真正的撤销发生在服务端，跳过去之后服务端还会再判一次
 function authLogout() {
-  fetch('/api/auth/logout', {
+  authClearPass()
+  fetch(apiUrl('/api/auth/logout'), {
     method: 'POST',
-    credentials: 'same-origin'
+    credentials: API_CREDENTIALS
   }).then(authKickToVerify)['catch'](authKickToVerify)
 }
 

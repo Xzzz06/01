@@ -60,6 +60,13 @@ export async function resolveSession(req: FastifyRequest): Promise<SessionInfo |
   return { sessionId: row.id, qq: row.qq, expiresAt: row.expires_at.getTime() }
 }
 
+// 离线通行证的到期时间。前端把它存进 localStorage，API 不可达时靠它放行已登录设备。
+// 故意不签名：前端代码在 Pages 上是全公开的，会改 JS 的人绕得过任何客户端校验，
+// 签名只能挡住"手写一条 localStorage"，不值得为它引入一套密钥管理
+function offlinePassExpiresAt(): number {
+  return Date.now() + config.offlinePassDays * 24 * 60 * 60 * 1000
+}
+
 function setSessionCookie(reply: FastifyReply, token: string, expires: Date): void {
   reply.setCookie(config.cookieName, token, {
     httpOnly: true,
@@ -250,7 +257,8 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       return {
         authenticated: true,
         qq,
-        sessionExpiresAt: session.expiresAt
+        sessionExpiresAt: session.expiresAt,
+        offlinePassExpiresAt: offlinePassExpiresAt()
       }
     }
   )
@@ -259,7 +267,13 @@ export function registerAuthRoutes(app: FastifyInstance): void {
   app.get('/api/auth/me', async (req, reply) => {
     const s = await resolveSession(req)
     if (!s) return reply.code(401).send(AUTH_REQUIRED)
-    return { authenticated: true, qq: s.qq, sessionExpiresAt: s.expiresAt }
+    // 每次成功都回一个新的到期时间，前端据此续期 —— 通行证是滑动窗口，不是一次性发放
+    return {
+      authenticated: true,
+      qq: s.qq,
+      sessionExpiresAt: s.expiresAt,
+      offlinePassExpiresAt: offlinePassExpiresAt()
+    }
   })
 
   // ---- 需要 Session：退出 ----

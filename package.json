@@ -7,8 +7,10 @@
   "scripts": {
     "dev:server": "tsx watch --env-file=.env.development server/src/index.ts",
     "start:server": "node --env-file=.env.development server/dist/index.js",
+    "start:prod": "node --env-file=.env.production server/dist/index.js",
     "build": "tsc -p server/tsconfig.json",
     "typecheck": "tsc -p server/tsconfig.json --noEmit",
+    "build:site": "rm -rf dist && mkdir -p dist && cp -R index.html manifest.json service.js _headers css js fonts icon auth dist/ && cp auth/verify.html dist/verify.html",
     "mock:group-message": "tsx --env-file=.env.development scripts/mock-group-message.mjs"
   },
   "dependencies": {

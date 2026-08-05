@@ -128,9 +128,8 @@ function dismissBoot(reduced) {
 // 抢在它前面渲染主屏会读到一片空。storeReady 在存储不可用时同样会回调，不会卡住启动。
 // 外面再套一层 authReady：Session 已失效时不能先闪一下主屏再跳登录页（方案 §6.2）
 document.addEventListener('DOMContentLoaded', function() {
-  // app-auth.js 本身是受保护资源。index.html 拿到之后、它自己被拉下来之前那一瞬间
-  // Session 恰好失效的话，它会以一段 401 JSON 的形式"加载成功"并解析失败，
-  // authReady 就不存在了。这时候直接开机，服务端下一个请求照样会把人拦回登录页
+  // app-auth.js 现在由 Pages 发，正常不会缺；真缺了（网络断在半路）就直接开机 ——
+  // 拦不住也没别的办法，接口鉴权仍在，用户进去也拿不到任何服务端数据
   if (typeof authReady !== 'function') {
     storeReady(startBoot)
     return
