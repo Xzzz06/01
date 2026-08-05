@@ -18,7 +18,7 @@ var SETTINGS_GROUPS = [
   { label: 'GENERAL', rows: [
     { name: 'API 设置',          icon: 'key2',             value: '',     keywords: 'api key', page: 'api' },
     { name: '语音配置设置',      icon: 'headphones-sound', value: '',     keywords: 'voice tts minimax elevenlabs 语音 yuyin', page: 'voice' },
-    { name: '图像配置设置',    icon: 'gallery3',         value: '',     keywords: 'image tuxiang' }
+    { name: '图像配置设置',    icon: 'gallery3',         value: '',     keywords: 'image nai novelai openai 图像 绘图 tuxiang', page: 'image' }
   ]},
   { label: 'STYLE', rows: [
     { name: '主题样式',          icon: 'moon-sleep',       value: '',     keywords: 'theme dark zhuti' },
@@ -45,6 +45,7 @@ var _settingsTimer = null      // 全局唯一计时器，开 / 关互相抢占�
 var SETTINGS_PAGES = {
   api: function() { openApiPage() },
   voice: function() { openVoicePage() },
+  image: function() { openImagePage() },
   version: function() { openVersionPage() },
   font: function() { openFontPage() }
 }

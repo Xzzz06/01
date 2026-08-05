@@ -731,17 +731,21 @@
 }
 .api-modal-foot .api-btn { width: 100%; }
 
-/* ===== 语音配置设置页 ===== */
+/* ===== 语音配置设置页 / 图像配置设置页 ===== */
+/* 两页的分段卡槽与服务地址行形态相同，共用同一组规则，只是各带各的类名前缀 */
 
 /* 分段卡槽 */
-.api-tabs.voice-tabs { height: 58px; }
+.api-tabs.voice-tabs,
+.api-tabs.img-tabs { height: 58px; }
 
-.voice-tab {
+.voice-tab,
+.img-tab {
   flex-direction: column;
   gap: 2px;
 }
 
-.voice-tab-eyebrow {
+.voice-tab-eyebrow,
+.img-tab-eyebrow {
   font-size: var(--label-size);
   font-weight: var(--label-weight);
   line-height: 1.2;
@@ -752,9 +756,11 @@
   color: var(--c-hint);
   transition: color var(--dur) var(--ease);
 }
-.voice-tab.is-active .voice-tab-eyebrow { color: var(--c-sub); }
+.voice-tab.is-active .voice-tab-eyebrow,
+.img-tab.is-active .img-tab-eyebrow { color: var(--c-sub); }
 
-.voice-tab-name {
+.voice-tab-name,
+.img-tab-name {
   font-size: var(--row-name-size);
   font-weight: var(--row-name-weight);
   line-height: 1.2;
@@ -763,13 +769,15 @@
 /* ===== 服务地址行 ===== */
 /* 直接铺在分组小标题下面，不再套外框。
  * 这一组不参与筛选，圆角可以交给 :first-child / :last-child，不需要 JS 打类 */
-.voice-opts {
+.voice-opts,
+.img-opts {
   display: flex;
   flex-direction: column;
   gap: var(--card-gap);
 }
 
-.voice-opt {
+.voice-opt,
+.img-opt {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -781,20 +789,24 @@
   border-radius: var(--card-radius-in);
   transition: background var(--dur) var(--ease);
 }
-.voice-opt:first-child {
+.voice-opt:first-child,
+.img-opt:first-child {
   border-top-left-radius: var(--card-radius);
   border-top-right-radius: var(--card-radius);
 }
-.voice-opt:last-child {
+.voice-opt:last-child,
+.img-opt:last-child {
   border-bottom-left-radius: var(--card-radius);
   border-bottom-right-radius: var(--card-radius);
 }
-.voice-opt:active { background: var(--press-bg); }
+.voice-opt:active,
+.img-opt:active { background: var(--press-bg); }
 
 /* 固定地址行：只展示，不接受点击 */
 .voice-opt.is-static { pointer-events: none; }
 
-.voice-opt-text {
+.voice-opt-text,
+.img-opt-text {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -802,28 +814,183 @@
   gap: 3px;
 }
 
-.voice-opt-name {
+.voice-opt-name,
+.img-opt-name {
   font-size: var(--row-name-size);
   font-weight: var(--row-name-weight);
   line-height: 1.3;
   color: var(--c-text);
 }
 
-.voice-opt-sub {
+.voice-opt-sub,
+.img-opt-sub {
   font-size: var(--row-value-size);
   line-height: 1.3;
   color: var(--c-sub);
   word-break: break-all;
 }
 
-.voice-opt-check {
+.voice-opt-check,
+.img-opt-check {
   flex: none;
   display: flex;
   align-items: center;
   color: var(--c-accent-dark);
   opacity: 0;                        /* 占位保留，选中与否行高不跳 */
 }
-.voice-opt.is-selected .voice-opt-check { opacity: 1; }
+.voice-opt.is-selected .voice-opt-check,
+.img-opt.is-selected .img-opt-check { opacity: 1; }
+
+/* ===== 图像配置设置页 ===== */
+
+/* 选项说明：贴在字段下面的一行小字，不占卡片 */
+.img-note {
+  margin: -2px 4px 0;
+  font-size: var(--row-value-size);
+  line-height: 1.45;
+  color: var(--c-hint);
+}
+
+/* 卡片节奏：本页参数卡是连排的，10px 挤在一起分不清，统一放到 12px。
+ * .api-slider 本来只跟在分组小标题后面，自身没有上边距，这里补一份 */
+.image-page .api-row,
+.image-page .api-slider { margin-top: 14px; }
+
+/* 紧跟在卡片 / 选项组下面的字段：标签贴着上一张卡，要自己撑开间距 */
+.img-custom-base,
+.img-seed { margin-top: 20px; }
+
+/* 清单行的第二行说明：把 .api-model-name 从单行文本改成两行一列 */
+.image-page .api-model-name {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.img-model-sub {
+  font-size: var(--row-value-size);
+  font-weight: 400;
+  color: var(--c-sub);
+}
+
+/* 可选参数折叠头：复用 .api-action 的胶囊形态，只加一个会转的箭头 */
+.img-more {
+  margin-top: 16px;
+  color: var(--c-sub);
+}
+.img-more re-icon { transition: transform var(--dur) var(--ease); }
+.img-more.is-open re-icon { transform: rotate(180deg); }
+
+/* 折叠区内部统一用 gap 排间距，子元素自带的 margin 一律清掉，避免两套间距叠加 */
+.img-adv {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+.img-adv > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ===== 开关行 ===== */
+.img-switch-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+  margin-top: 10px;
+}
+
+.img-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  background: var(--card-bg);
+  border-radius: var(--card-radius-in);
+}
+.img-switch-row:first-child {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.img-switch-row:last-child {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+
+.img-switch-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.img-switch-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+}
+
+.img-switch-sub {
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+}
+
+/* 本体 44×26，靶区由 ::before 上下撑到 44px */
+.img-switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-3);
+  transition: background var(--dur) var(--ease);
+}
+.img-switch::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -9px;
+  bottom: -9px;
+}
+.img-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.22s var(--ease);
+}
+.img-switch[aria-pressed="true"] { background: var(--c-accent-dark); }
+.img-switch[aria-pressed="true"]::after { transform: translateX(18px); }
+
+/* ===== 负面提示词 ===== */
+.img-area {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--c-surface-2);
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--c-text);
+  resize: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.img-area::placeholder { color: var(--c-hint); }
 
 /* 减弱动态效果：取消横向位移与按压缩放，直接显示 / 隐藏 */
 @media (prefers-reduced-motion: reduce) {
@@ -835,6 +1002,8 @@
   .api-tab-ind { transition: none; }
   .api-action.is-loading re-icon { animation: none; }
   .api-back { transition: background var(--dur) var(--ease); }
+  .img-switch::after,
+  .img-more re-icon { transition: none; }
   .api-back:active,
   .api-btn:active { transform: none; }
   /* 弹窗只保留淡入，去掉缩放 */
