@@ -12,7 +12,7 @@
   --field-h: 48px;
   --btn-h: 46px;
 
-  --ct-avatar: 52px;             /* 列表行头像，会话行与联系人行必须同一颗 */
+  --ct-avatar: 46px;             /* 列表行头像，会话行与联系人行必须同一颗 */
   /* 行名比 --page-title-size 小、比 --row-name-size 大，:root 里没有这一档，
    * 本页局部定义一次，聊天页与通讯录页共用 */
   --ct-row-name-size: 16px;
@@ -164,8 +164,8 @@
   position: absolute;
   right: -2px;
   bottom: -2px;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,12 +190,12 @@
   background: currentColor;
 }
 .ct-hero-badge::before {
-  width: 10px;
+  width: 8px;
   height: 1.5px;
 }
 .ct-hero-badge::after {
   width: 1.5px;
-  height: 10px;
+  height: 8px;
 }
 
 /* 通知与九宫格只是排版占位：本期不响应点击，用最弱字色标明 */
@@ -215,14 +215,16 @@
 }
 
 /* ===== 搜索行：聊天页与通讯录页各一条，都常驻、不做折叠 ===== */
+/* 尺寸跟着列表行一起收：44 高、圆角取一半，与 API 页弹窗里的搜索框同一档。
+ * 输入字号仍然是 16px —— 小于它 iOS 一聚焦就会放大整页，这条不能动 */
 .ct-search {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 52px;
-  margin-top: 20px;
-  padding: 0 18px;
-  border-radius: 26px;
+  gap: 10px;
+  height: 44px;
+  margin-top: 16px;
+  padding: 0 16px;
+  border-radius: 22px;
   background: var(--ct-fill);
   color: var(--c-hint);
 }
@@ -337,8 +339,9 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 72px;
-  padding: 12px 14px;
+  /* 66 = 头像 46 + 上下各 10：两者对齐，行高不再有「谁大听谁的」的隐藏规则 */
+  min-height: 66px;
+  padding: 10px 14px;
   text-align: left;
   border-radius: var(--card-radius-in);
   background: var(--ct-fill);

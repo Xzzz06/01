@@ -392,7 +392,7 @@ function ctChatsPanelHtml() {
 // 两个面板共用同一条搜索行，只差占位符与它筛的那份列表
 function ctSearchHtml(key, ph) {
   return '<div class="ct-search">' +
-           '<re-icon icon="search" size="18"></re-icon>' +
+           '<re-icon icon="search" size="16"></re-icon>' +
            '<input type="search" data-search="' + key + '" placeholder="' + escapeHtml(ph) + '"' +
                  ' aria-label="' + escapeHtml(ph) + '"' +
                  ' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">' +
