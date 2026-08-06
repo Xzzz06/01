@@ -46,8 +46,10 @@
   --sal: env(safe-area-inset-left, 0px);    /* 竖屏恒为 0，留着以后加横屏/抽屉用 */
   --sar: env(safe-area-inset-right, 0px);
 
-  /* ===== 桌面网格行数 ===== */
-  --desktop-grid-rows: 3;
+  /* ===== 桌面网格行数 =====
+     6 行是为了让一格高度贴合一个图标（约 87px），组件才排得出正常尺寸。
+     调大这个值会把行挤扁到装不下图标标签，见 PROMPT/18_桌面拖拽与小组件.md */
+  --desktop-grid-rows: 6;
 
   /* ===== 字体 ===== */
   --font-ui: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;

@@ -12,7 +12,13 @@
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 
+  /* 平时把横向手势留给翻页；编辑模式下整块交给拖拽，不能让浏览器抢走 */
+  touch-action: pan-y;
+
   background: #f6f6f6;
+}
+#home-page.edit-mode {
+  touch-action: none;
 }
 
 /* 顶部状态栏安全区占位：纯 spacer，无背景，允许吃在 height 上 */
@@ -28,15 +34,33 @@
   overflow: hidden;
 }
 
+/* ===== 翻页条 =====
+ * --swipe-page 由翻页提交时写（走 transition），--swipe-drag 在手势中每帧直接写
+ * （60fps 且不触发重渲染）。两者共用同一个 transform，所以松手时不会打架。 */
+.desktop-strip {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  transform: translate3d(calc(-100% * var(--swipe-page, 0) + var(--swipe-drag, 0px)), 0, 0);
+  transition: transform 0.3s var(--ease);
+}
+.desktop-strip.is-swiping {
+  transition: none;
+}
+
 /* ===== 图标网格 ===== */
 .desktop-page {
-  width: 100%;
+  flex: 0 0 100%;
   height: 100%;
   padding: 16px 20px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-rows: repeat(var(--desktop-grid-rows), minmax(0, 1fr));
-  gap: 20px 12px;                 /* 行距 20，列距 12 */
+  /* 行距被组件高度公式复用（见 home-widgets.css），所以提成变量只留一处定义 */
+  --desktop-row-gap: 4px;
+  gap: var(--desktop-row-gap) 12px;   /* 列距 12 不能改，Dock 靠它对齐 */
   align-content: stretch;
 }
 
@@ -69,6 +93,29 @@
   max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ===== 页码点 =====
+ * 走 flex 流而不是绝对定位：绝对定位就得写死 Dock 高度，
+ * 而 Dock 高度是由 padding 推导出来的（88/102），不能出现第二处硬编码。 */
+.page-dots {
+  flex-shrink: 0;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.page-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.16);
+  transition: background 0.2s var(--ease);
+  cursor: pointer;
+}
+.page-dot.is-on {
+  background: rgba(0, 0, 0, 0.42);
 }
 
 /* ===== Dock 栏 ===== */
@@ -164,6 +211,7 @@
 .icon-bg,
 .dock-icon-bg,
 .dock-glass,
+.home-widget-body,
 .dev-banner {
   --glass-edge-highlight: rgba(255, 255, 255, 0.4);
   --glass-edge-soft: rgba(255, 255, 255, 0.14);
@@ -173,10 +221,12 @@
 .icon-bg::before,
 .dock-icon-bg::before,
 .dock-glass::before,
+.home-widget-body::before,
 .dev-banner::before,
 .icon-bg::after,
 .dock-icon-bg::after,
 .dock-glass::after,
+.home-widget-body::after,
 .dev-banner::after {
   content: '';
   position: absolute;
@@ -190,7 +240,8 @@
 /* ::before —— 左上角高光弧 */
 .icon-bg::before,
 .dock-icon-bg::before,
-.dock-glass::before {
+.dock-glass::before,
+.home-widget-body::before {
   border-color: var(--glass-edge-highlight);
   -webkit-mask-image: radial-gradient(
     ellipse 100% 100% at top left,
@@ -209,7 +260,8 @@
 /* ::after —— 右下角弱光弧 */
 .icon-bg::after,
 .dock-icon-bg::after,
-.dock-glass::after {
+.dock-glass::after,
+.home-widget-body::after {
   border-color: var(--glass-edge-soft);
   -webkit-mask-image: radial-gradient(
     ellipse 100% 100% at bottom right,
@@ -297,4 +349,102 @@
     transform: none;
     transition: opacity 0s, visibility 0s;
   }
+}
+
+/* ===== 编辑模式（长按进入）===== */
+/* 抖动必须给 FLIP 让路：keyframes 的 transform 优先级高于内联 transform，
+   不停掉动画的话让位动画会被抖动覆盖，看起来就是"图标瞬移" */
+.edit-mode .app-icon,
+.edit-mode .dock-item {
+  animation: home-jiggle 0.22s ease-in-out infinite;
+}
+.edit-mode .app-icon:nth-child(even),
+.edit-mode .dock-item:nth-child(even) {
+  animation-delay: -0.11s;
+  animation-duration: 0.26s;
+}
+.edit-mode .home-widget {
+  animation: home-jiggle 0.28s ease-in-out infinite;
+  animation-delay: -0.06s;
+}
+.edit-mode [data-flip-active] {
+  animation: none;
+}
+.edit-mode .app-icon.dragging,
+.edit-mode .dock-item.dragging,
+.edit-mode .home-widget.dragging {
+  opacity: 0.25;
+  animation: none;
+}
+/* 编辑模式下按下不缩放：会和抖动的 transform 打架 */
+.edit-mode .app-icon:active,
+.edit-mode .dock-item:active {
+  transform: none;
+  opacity: 1;
+}
+
+@keyframes home-jiggle {
+  0%   { transform: rotate(-1.2deg); }
+  50%  { transform: rotate(1.2deg); }
+  100% { transform: rotate(-1.2deg); }
+}
+
+/* 重排瞬间关掉毛玻璃：几十个 blur(20px) 同时重排会直接掉帧。
+   用 DOM 属性而不是 class，避免和编辑模式的 class 互相覆盖。 */
+#home-page[data-glass-busy] .icon-bg,
+#home-page[data-glass-busy] .dock-icon-bg,
+#home-page[data-glass-busy] .dock-glass,
+#home-page[data-glass-busy] .home-widget-body {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/*
+ * 压得很扁并贴着安全区顶：第一行图标从 --sat + 16px 开始，按钮再高一点就会盖住图标。
+ * 拖拽进行中直接隐藏，避免挡住右上角那一格的落点。
+ */
+.edit-done-btn {
+  position: absolute;
+  top: var(--sat);
+  right: 12px;
+  z-index: 30;
+  display: none;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--c-title);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+}
+.edit-mode .edit-done-btn {
+  display: block;
+}
+.edit-mode.is-dragging .edit-done-btn {
+  display: none;
+}
+
+/* ===== 幽灵层 =====
+ * grid-row / grid-column 不可过渡，被拖的元素留在网格里就没法跟手，
+ * 所以复制一份出来绝对定位，用 transform 跟手。原件留在原地当落位锚点。 */
+.drag-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  display: none;
+  pointer-events: none;
+  will-change: transform;
+}
+.drag-ghost > * {
+  transform: scale(1.12);
+  transition: transform 0.16s var(--ease);
+}
+/* 副本不该继续抖 */
+.drag-ghost * {
+  animation: none !important;
 }
