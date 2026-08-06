@@ -15,7 +15,13 @@
   /* 平时把横向手势留给翻页；编辑模式下整块交给拖拽，不能让浏览器抢走 */
   touch-action: pan-y;
 
-  background: #f6f6f6;
+  /* 自定义壁纸由 beautify.js 写在 background-image 上，没设过就是这层底色。
+     底色跟设置页的页面底同一个变量，所以夜间模式下桌面会一起变暗。
+     三行必须排在 background 简写之后 —— 简写会把它们重置掉 */
+  background: var(--c-surface);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 #home-page.edit-mode {
   touch-action: none;
@@ -110,12 +116,12 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.16);
+  background: var(--dot-off);
   transition: background 0.2s var(--ease);
   cursor: pointer;
 }
 .page-dot.is-on {
-  background: rgba(0, 0, 0, 0.42);
+  background: var(--dot-on);
 }
 
 /* ===== Dock 栏 ===== */
@@ -163,6 +169,8 @@
 }
 
 /* ===== 玻璃效果 ===== */
+/* 具体色值与模糊参数全在 base.css 的 --glass-* 里，日夜各一套；
+ * 纯色主题的覆盖在 css/setting-theme.css。这里不要再写死颜色。 */
 .icon-bg {
   width: var(--icon-bg-size);
   height: var(--icon-bg-size);
@@ -170,9 +178,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
-  -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: none;                  /* 边框由 ::before / ::after 画 */
   box-shadow: none;
   position: relative;
@@ -186,9 +194,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
-  -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.035);
   position: relative;
@@ -196,9 +204,9 @@
 }
 
 .dock-glass {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--glass-fill-dock);
+  backdrop-filter: var(--glass-blur-flat);
+  -webkit-backdrop-filter: var(--glass-blur-flat);
   border: none;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
 }
@@ -207,15 +215,8 @@
  * 局部玻璃边缘：完整 0.8px 圆角描边由椭圆遮罩裁成两个角落。
  * 椭圆横纵半径均按元素自身尺寸计算，因此方形图标和长条 Dock 均可自适应。
  * 分别沿每条边在约 25% 后渐隐，并在约 80% 处完全消失。
+ * --glass-edge-highlight / --glass-edge-soft 在 base.css 的 :root 上，日夜各一套。
  */
-.icon-bg,
-.dock-icon-bg,
-.dock-glass,
-.home-widget-body,
-.dev-banner {
-  --glass-edge-highlight: rgba(255, 255, 255, 0.4);
-  --glass-edge-soft: rgba(255, 255, 255, 0.14);
-}
 
 /* 两个伪元素的公共部分 */
 .icon-bg::before,
@@ -310,9 +311,9 @@
   text-overflow: ellipsis;
 
   /* 半透明玻璃底：比图标底更实一些，保证压在壁纸/图标上时文字依旧清晰 */
-  background: rgba(255, 255, 255, 0.62);
-  backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
-  -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  background: var(--glass-fill-banner);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
 
   pointer-events: none;                /* 纯提示，绝不拦截桌面点击 */
@@ -415,9 +416,9 @@
   font-family: inherit;
   font-size: 12px;
   color: var(--c-title);
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--glass-fill-btn);
+  backdrop-filter: var(--glass-blur-flat);
+  -webkit-backdrop-filter: var(--glass-blur-flat);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   cursor: pointer;
 }

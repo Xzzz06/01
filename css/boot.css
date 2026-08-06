@@ -82,7 +82,8 @@
   height: 3px;
   margin-top: -1.5px;
   border-radius: 2px;
-  background: rgba(58, 58, 58, 0.12);
+  /* 底槽跟着日夜换向：写死的深灰在夜间底上会整条消失 */
+  background: var(--c-border-m);
   overflow: hidden;
   opacity: 0;
   transform: scaleX(0.12);

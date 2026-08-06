@@ -170,7 +170,7 @@ function homeWidgetIsBare(type) {
 
 // 想换标题 / 昵称改这两行即可；已经摆在桌面上的那个组件要连带清一次
 // storeSet('home.widgets', null) 才会重新取默认值
-var DIARY_DEFAULT_TITLE = '📖 ⁺°.*cherry sweet diary'
+var DIARY_DEFAULT_TITLE = '⁺°.Cookie Diary'
 var DIARY_DEFAULT_HANDLE = '吃一口曲奇'
 
 function homeWidgetTypeExists(type) {

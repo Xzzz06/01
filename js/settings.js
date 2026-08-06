@@ -21,7 +21,7 @@ var SETTINGS_GROUPS = [
     { name: '图像配置设置',    icon: 'gallery3',         value: '',     keywords: 'image nai novelai openai 图像 绘图 tuxiang', page: 'image' }
   ]},
   { label: 'STYLE', rows: [
-    { name: '主题样式',          icon: 'moon-sleep',       value: '',     keywords: 'theme dark zhuti' },
+    { name: '主题样式',          icon: 'moon-sleep',       value: '',     keywords: 'theme dark light glass 主题 夜间 玻璃 纯色 zhuti', page: 'theme' },
     { name: '字体样式',          icon: 'text',             value: '',     keywords: 'font typography ziti 字体', page: 'font' }
   ]},
   { label: 'SYSTEM', rows: [
@@ -47,7 +47,8 @@ var SETTINGS_PAGES = {
   voice: function() { openVoicePage() },
   image: function() { openImagePage() },
   version: function() { openVersionPage() },
-  font: function() { openFontPage() }
+  font: function() { openFontPage() },
+  theme: function() { openThemePage() }
 }
 
 function openSettingsSubPage(id) {

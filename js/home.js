@@ -13,7 +13,7 @@ var APPS = [
 
 var DOCK_APPS = [
   { id: 'settings', name: '设置', icon: 'settings' },
-  { id: 'theme',    name: '美化', icon: 'wand-sparkle' },
+  { id: 'theme',    name: '美化', icon: 'wallpaper' },
   { id: 'sms',      name: '短信', icon: 'chat-minus' }
 ]
 
@@ -48,6 +48,9 @@ function homeCreateIconEl(app) {
   el.innerHTML =
     '<div class="icon-bg"><re-icon icon="' + escapeHtml(app.icon) + '" size="' + ICON_SIZE + '"></re-icon></div>' +
     '<div class="icon-label">' + escapeHtml(app.name) + '</div>'
+  // 图标皮肤「换图 / 换色 / 改文字」由 beautify.js 打上去。
+  // 节点被重建时都会走到这里，所以图标在桌面与 Dock 之间来回也不会掉皮肤
+  if (typeof beautyApplyIconSkin === 'function') beautyApplyIconSkin(el, app.id)
   return el
 }
 
@@ -61,6 +64,7 @@ function homeCreateDockEl(app) {
   el.innerHTML =
     '<div class="dock-icon-bg"><re-icon icon="' + escapeHtml(app.icon) + '" size="' + ICON_SIZE + '"></re-icon></div>' +
     '<span>' + escapeHtml(app.name) + '</span>'
+  if (typeof beautyApplyIconSkin === 'function') beautyApplyIconSkin(el, app.id)
   return el
 }
 
@@ -264,6 +268,10 @@ function openApp(appId) {
   }
   if (appId === 'world') {
     openWorldPage()               // world.js 提供
+    return
+  }
+  if (appId === 'theme') {
+    openBeautyPage()              // beautify.js 提供
     return
   }
 

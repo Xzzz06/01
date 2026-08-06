@@ -26,9 +26,9 @@
   border-radius: 20px;
   position: relative;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
-  -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.05);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.035);
   color: var(--c-title);
@@ -69,11 +69,13 @@
   aspect-ratio: 118 / 133;
 }
 
+/* 相纸底色走 --c-bg（日间是白、夜间是暗面里最亮的一档），不写死 #fff ——
+   否则夜间模式下这两张纸会亮得像两块灯板 */
 .wg-pola-back,
 .wg-pola-card {
   position: absolute;
   inset: 0;
-  background: #fff;
+  background: var(--c-bg);
   border-radius: 1px;
 }
 /* 后面那张只露边，转得比前面多，四角各探出一点 */
@@ -92,7 +94,7 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--c-surface-3);
 }
 .wg-pola-photo img {
   width: 100%;
@@ -300,8 +302,8 @@
   min-width: 0;
 }
 /*
- * 输入栏用半透明白 + 模糊，不用参考稿那种浅灰实底：桌面本身就是 #f6f6f6，
- * 浅灰实底会整条消失在背景里
+ * 输入栏用半透明 + 模糊，不用参考稿那种浅灰实底：桌面本身就是 --c-surface，
+ * 浅灰实底会整条消失在背景里。纯色主题下它另有一套（见 css/setting-theme.css）
  */
 .wg-chat-field {
   flex: 1;
@@ -309,7 +311,7 @@
   height: 34px;
   padding: 0 16px;
   border-radius: 17px;
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--glass-fill-field);
   backdrop-filter: blur(10px) saturate(160%);
   -webkit-backdrop-filter: blur(10px) saturate(160%);
   font-size: 11.5px;
@@ -329,6 +331,10 @@
 }
 .wg-chat-heart.is-deep {
   color: rgba(0, 0, 0, 0.16);
+}
+/* 深的那颗是黑向，夜间要翻成白向，否则整颗消失在暗底里 */
+:root[data-theme="dark"] .wg-chat-heart.is-deep {
+  color: rgba(255, 255, 255, 0.24);
 }
 .wg-chat-heart svg {
   width: 15px;

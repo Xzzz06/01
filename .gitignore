@@ -11,7 +11,7 @@ PROMPT/
 node_modules/
 server/dist/
 
-# Pages 的构建产物，由 npm run build:site 生成
+# 构建 Pages
 dist/
 
 # 密钥： Secret，严禁泄漏

@@ -30,6 +30,24 @@
   --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
 
+  /* ===== 主屏玻璃材质 =====
+     日夜两套值都收在这里，home.css / home-widgets.css 只引用不写死。
+     纯色主题不动这些变量，它换的是 setting-theme.css 里那组 [data-material="solid"] 规则 */
+  --glass-fill: rgba(255, 255, 255, 0.1);          /* 图标底 / 组件底 */
+  --glass-fill-dock: rgba(255, 255, 255, 0.06);    /* Dock 长条，比图标底更淡 */
+  --glass-fill-hover: rgba(255, 255, 255, 0.18);   /* 桌面鼠标悬停 */
+  --glass-fill-banner: rgba(255, 255, 255, 0.62);  /* 提示横幅，压在图标上要更实 */
+  --glass-fill-btn: rgba(255, 255, 255, 0.55);     /* 编辑模式的「完成」 */
+  --glass-fill-field: rgba(255, 255, 255, 0.45);   /* 聊天组件的输入栏 */
+  --glass-blur: blur(20px) saturate(180%) brightness(1.05);
+  --glass-blur-flat: blur(20px) saturate(180%);    /* Dock 与「完成」不提亮 */
+  --glass-edge-highlight: rgba(255, 255, 255, 0.4);
+  --glass-edge-soft: rgba(255, 255, 255, 0.14);
+
+  /* 页码点直接压在壁纸上，日夜要换向 */
+  --dot-off: rgba(0, 0, 0, 0.16);
+  --dot-on: rgba(0, 0, 0, 0.42);
+
   /* ===== 圆角 ===== */
   --r-sm: 8px;
   --r-md: 16px;
@@ -69,6 +87,48 @@
   --row-name-size: 14px;     /* 行名 */
   --row-name-weight: 450;
   --row-value-size: 12px;    /* 行右侧状态文字 */
+}
+
+/* ===== 夜间模式 =====
+ * 设计与理由见 PROMPT/20_主题样式页.md，属性由 js/setting-theme.js 打在 <html> 上。
+ * 这里只覆盖变量，所以新增页面一律引用变量，不要自己写十六进制。
+ * 改色时必须守住「--c-bg 比 --c-surface-3 更突出」—— 卡槽滑块与开关滑钮全靠它。 */
+:root[data-theme="dark"] {
+  --c-bg: #3d3d3d;
+  --c-surface: #101010;
+  --c-surface-2: #1c1c1c;
+  --c-surface-3: #2a2a2a;
+  --c-desk: #2a2a2a;
+  --c-border: rgba(255, 255, 255, 0.06);
+  --c-border-m: rgba(255, 255, 255, 0.13);
+
+  --c-text: #ececec;
+  --c-title: #c0c0c0;
+  --c-sub: #8c8c8c;
+  --c-hint: #6a6a6a;
+
+  --c-accent: #9a9a9a;
+  --c-accent-dark: #a8a8a8;
+
+  /* 黑影落在暗底上几乎看不见，只能整体加重 */
+  --shadow-sm: 0 1px 6px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+  --glass-fill: rgba(255, 255, 255, 0.08);
+  --glass-fill-dock: rgba(255, 255, 255, 0.05);
+  --glass-fill-hover: rgba(255, 255, 255, 0.14);
+  --glass-fill-banner: rgba(28, 28, 28, 0.7);
+  --glass-fill-btn: rgba(42, 42, 42, 0.62);
+  --glass-fill-field: rgba(255, 255, 255, 0.1);
+  /* 暗底上的玻璃要把背后压暗，不能再 brightness(1.05) 提亮 */
+  --glass-blur: blur(20px) saturate(160%) brightness(0.72);
+  --glass-blur-flat: blur(20px) saturate(160%) brightness(0.72);
+  --glass-edge-highlight: rgba(255, 255, 255, 0.26);
+  --glass-edge-soft: rgba(255, 255, 255, 0.08);
+
+  --dot-off: rgba(255, 255, 255, 0.2);
+  --dot-on: rgba(255, 255, 255, 0.55);
 }
 
 /* ===== 全局重置 ===== */
@@ -143,6 +203,6 @@ re-icon {
 @media (hover: hover) {
   .app-icon:hover .icon-bg,
   .dock-item:hover .dock-icon-bg {
-    background: rgba(255, 255, 255, 0.18);   /* 静止态是 0.1 */
+    background: var(--glass-fill-hover);     /* 静止态是 --glass-fill */
   }
 }
