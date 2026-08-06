@@ -249,12 +249,12 @@
 
 /* 气泡圆角 13px：比 --r-md 收一档。这一层只有 28px 高，用 16px 以上会直接圆成胶囊 */
 .wg-chat-bubble {
-  padding: 6px 11px;
+  padding: 8px 10px;
   border-radius: 13px;
   background: var(--c-bg);
   box-shadow: var(--shadow-sm);
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 650;
   line-height: 1.25;
   color: var(--c-text);
   white-space: nowrap;
@@ -284,8 +284,8 @@
   padding: 0 10px;
 }
 .wg-chat-menu-ico svg {
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;
   display: block;
 }
 .wg-chat-menu-sep {
