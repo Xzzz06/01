@@ -75,7 +75,81 @@ var HOME_WIDGET_TYPES = {
       if (s) s.textContent = pad2(d.getSeconds())
       if (dt) dt.textContent = pad2(d.getMonth() + 1) + '.' + pad2(d.getDate())
     }
+  },
+
+  // 聊天示意 2x4：来信气泡 / 去信气泡 / 小菜单 / 输入栏，四层平铺。
+  // 纯装饰，不接聊天数据、没有可点区域；文案在 CHATBOX_* 三个常量里。
+  // 同样是 bare —— 四层元素各自带白底，再套一块玻璃会糊成一坨
+  chatbox: {
+    name: '聊天示意',
+    size: '2x4',
+    bare: true,
+    mount: function (el) {
+      el.innerHTML =
+        '<div class="wg-chat">' +
+          '<div class="wg-chat-row">' +
+            chatboxAvatarHtml() +
+            '<span class="wg-chat-bubble">' + escapeHtml(CHATBOX_MSG_IN) + '</span>' +
+          '</div>' +
+          '<div class="wg-chat-row is-out">' +
+            '<span class="wg-chat-bubble">' + escapeHtml(CHATBOX_MSG_OUT) + '</span>' +
+            chatboxAvatarHtml() +
+          '</div>' +
+          '<div class="wg-chat-row">' +
+            '<span class="wg-chat-menu">' +
+              '<span class="wg-chat-menu-item">Paste</span>' +
+              '<span class="wg-chat-menu-sep"></span>' +
+              '<span class="wg-chat-menu-ico">' +
+                '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"' +
+                    ' stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M2 7 V4.5 A2.5 2.5 0 0 1 4.5 2 H7"/>' +
+                  '<path d="M13 2 H15.5 A2.5 2.5 0 0 1 18 4.5 V7"/>' +
+                  '<path d="M18 13 V15.5 A2.5 2.5 0 0 1 15.5 18 H13"/>' +
+                  '<path d="M7 18 H4.5 A2.5 2.5 0 0 1 2 15.5 V13"/>' +
+                  '<path d="M6.6 10 H13.4"/>' +
+                '</svg>' +
+              '</span>' +
+              '<span class="wg-chat-menu-sep"></span>' +
+              '<span class="wg-chat-menu-item">Share</span>' +
+              '<span class="wg-chat-menu-sep"></span>' +
+              '<span class="wg-chat-menu-ico">' +
+                '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"' +
+                    ' stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M7.5 4 L13.5 10 L7.5 16"/>' +
+                '</svg>' +
+              '</span>' +
+            '</span>' +
+          '</div>' +
+          '<div class="wg-chat-input">' +
+            chatboxHeartHtml(false) +
+            '<span class="wg-chat-field">' + escapeHtml(CHATBOX_PLACEHOLDER) + '</span>' +
+            chatboxHeartHtml(true) +
+            chatboxHeartHtml(false) +
+          '</div>' +
+        '</div>'
+    }
   }
+}
+
+// 三条文案改这里刷新即生效，不用清 home.widgets（config 里从来不写这几项）
+var CHATBOX_MSG_IN = '我說許願天使降臨'
+var CHATBOX_MSG_OUT = '所以我出現了'
+var CHATBOX_PLACEHOLDER = 'Love is always stronger than pain'
+var CHATBOX_AVATAR = 'icon/ava/00.jpg'
+
+// 虚线框里一张头像，两条气泡共用同一张图
+function chatboxAvatarHtml() {
+  return '<span class="wg-chat-ava"><img src="' + CHATBOX_AVATAR + '" alt=""></span>'
+}
+
+// deep 是输入栏右侧靠里那颗：三颗一样大，只有它的颜色深一档
+function chatboxHeartHtml(deep) {
+  return '<span class="wg-chat-heart' + (deep ? ' is-deep' : '') + '">' +
+    '<svg viewBox="0 0 24 22" fill="currentColor">' +
+      '<path d="M12 20.6 C12 20.6 2 14.2 2 8 A5.6 5.6 0 0 1 12 4.4 A5.6 5.6 0 0 1 22 8' +
+        ' C22 14.2 12 20.6 12 20.6 Z"/>' +
+    '</svg>' +
+  '</span>'
 }
 
 var DIARY_AVATAR = 'icon/ava/00.jpg'

@@ -204,3 +204,134 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ===== 聊天示意 2x4 ===== */
+/*
+ * 也是 is-bare：四层元素各自带白底，外面再套一块玻璃会糊成一坨。
+ * 四层平铺（来信 32 / 去信 32 / 菜单 30 / 输入栏 34 = 128px）刚好吃满 2 行的 178px 净高，
+ * 也让每层各自独占整宽 —— 菜单和去信气泡并排那版在窄屏会撞上
+ */
+.wg-chat {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  /* 纯装饰，整块不吃指针事件 —— 否则按在气泡上会拖不动组件 */
+  pointer-events: none;
+}
+
+.wg-chat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.wg-chat-row.is-out { justify-content: flex-end; }
+
+/* 头像：圆角方图，两条气泡共用 */
+.wg-chat-ava {
+  flex: none;
+  width: 32px;
+  height: 32px;
+}
+.wg-chat-ava img {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+  -webkit-user-drag: none;
+}
+
+/* 气泡圆角 13px：比 --r-md 收一档。这一层只有 28px 高，用 16px 以上会直接圆成胶囊 */
+.wg-chat-bubble {
+  padding: 6px 11px;
+  border-radius: 13px;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-sm);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
+/* 小菜单：胶囊白条，分段之间用 1px 竖线隔开 */
+.wg-chat-menu {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-md);
+  color: var(--c-text);
+}
+/* 比气泡的 11.5px 小 1px：菜单字重虽然轻一档，同字号下仍显得比气泡里的字大 */
+.wg-chat-menu-item {
+  padding: 0 11px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.wg-chat-menu-ico {
+  display: flex;
+  padding: 0 10px;
+}
+.wg-chat-menu-ico svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+.wg-chat-menu-sep {
+  flex: none;
+  width: 1px;
+  height: 15px;
+  background: var(--c-border-m);
+}
+
+.wg-chat-input {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+/*
+ * 输入栏用半透明白 + 模糊，不用参考稿那种浅灰实底：桌面本身就是 #f6f6f6，
+ * 浅灰实底会整条消失在背景里
+ */
+.wg-chat-field {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 34px;
+  color: var(--c-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 三颗一样大，只有右侧靠里那颗深一档 —— --c-border-m 与 --c-hint 之间没有现成变量，写死 */
+.wg-chat-heart {
+  flex: none;
+  display: flex;
+  color: var(--c-border-m);
+}
+.wg-chat-heart.is-deep {
+  color: rgba(0, 0, 0, 0.16);
+}
+.wg-chat-heart svg {
+  width: 15px;
+  height: 14px;
+  display: block;
+}

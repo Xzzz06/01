@@ -349,19 +349,31 @@ function homeReflowDock(snap, iconId, sourcePage, dockIndex) {
 }
 
 // ===== 默认布局 =====
+// 第 1 页排成三层：日记 1-2 行整宽 / 拍立得 3-4 行左半 + 四个图标 3-4 行右半 / 聊天示意 5-6 行整宽。
+// 四个图标凑成 2x2 方块贴着拍立得，位置写死不跟 APPS 的顺序走。
 // APPS / DOCK_APPS 定义在 home.js，脚本顺序在本文件之后；这里只在运行时（renderHome 之后）读，没问题
+var HOME_DEFAULT_ICON_CELLS = {
+  chat:    { row: 3, col: 3 },
+  profile: { row: 3, col: 4 },
+  world:   { row: 4, col: 3 },
+  memory:  { row: 4, col: 4 }
+}
+
 function homeDefaultLayout() {
   var layout = { page1: [], page2: [] }
-  for (var i = 0; i < APPS.length && i < GRID_COLS; i++) {
-    layout.page1.push({ id: APPS[i].id, row: 1, col: i + 1 })
+  for (var i = 0; i < APPS.length; i++) {
+    var cell = HOME_DEFAULT_ICON_CELLS[APPS[i].id]
+    // 表里没写的新 app 不在这里硬塞，交给 homeAdoptMissingApps() 找空位
+    if (cell) layout.page1.push({ id: APPS[i].id, row: cell.row, col: cell.col })
   }
   return layout
 }
 
 function homeDefaultWidgets() {
   return [
+    { id: 'w_calendar_default', type: 'calendar', size: '2x4', page: 1, row: 1, col: 1, config: {} },
     { id: 'w_clock_default', type: 'polaroid', size: '2x2', page: 1, row: 3, col: 1, config: {} },
-    { id: 'w_calendar_default', type: 'calendar', size: '2x4', page: 1, row: 5, col: 1, config: {} }
+    { id: 'w_chatbox_default', type: 'chatbox', size: '2x4', page: 1, row: 5, col: 1, config: {} }
   ]
 }
 
