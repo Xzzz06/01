@@ -54,6 +54,11 @@
   <!-- chat-main.css 复用 setting-api.css 的顶栏 / 弹窗与 chat-register.css 的字段 / 折叠块，
        必须排在这两个之后 -->
   <link rel="stylesheet" href="css/chat/chat-main.css?v=1.4.0">
+  <!-- beautify.css 复用 settings.css 的顶栏与 setting-api.css 的卡槽 / 按钮，必须排在这两个之后 -->
+  <link rel="stylesheet" href="css/beautify.css?v=1.5.0">
+  <!-- setting-theme.css 复用 setting-api.css 的外壳 / 卡槽，还要覆盖 home.css 与
+       home-widgets.css 的玻璃材质，必须排在这三个之后 -->
+  <link rel="stylesheet" href="css/setting-theme.css?v=1.4.0">
 </head>
 <body>
 
@@ -103,16 +108,22 @@
   <!-- store 必须排在用它的模块前面：它一加载就开始装载 IndexedDB，
        其余模块的读写都要等它的 storeReady() -->
   <script src="js/store.js?v=2.0.0"></script>
+  <!-- setting-theme.js 尽量靠前：它一就绪就往 <html> 上打主题属性，
+       排在后面会让夜间模式在开屏动画结束后才生效，先闪一下日间 -->
+  <script src="js/setting-theme.js?v=1.1.0"></script>
   <!-- home-layout.js 必须排在 home.js 之前：渲染期就要读 homeLayout / WIDGET_SIZE_CELLS -->
   <script src="js/home-layout.js?v=1.3.0"></script>
   <!-- home-widgets.js 必须排在 home-layout.js 之后：归一化存档时要调 homeWidgetTypeExists() -->
   <script src="js/home-widgets.js?v=1.5.1"></script>
-  <script src="js/home.js?v=1.5.0"></script>
+  <script src="js/home.js?v=1.8.0"></script>
   <!-- home-drag.js 必须排在 home.js 之后：每帧让位后要调 homeRenderDesktop() 重排 -->
   <script src="js/home-drag.js?v=1.0.0"></script>
+  <!-- beautify.js 依赖 store.js（开机恢复壁纸 / 图标）和 home.js 的 showToast() /
+       APPS / DOCK_APPS / homeAppById()；home.js 反过来调它的 beautyApplyIconSkin() -->
+  <script src="js/beautify.js?v=1.3.0"></script>
   <!-- setting-version.js 必须排在 settings.js 之前：SETTINGS_GROUPS 的「版本」行解析期就要读 VERSION_NO -->
   <script src="js/setting-version.js?v=1.0.0"></script>
-  <script src="js/settings.js?v=1.8.0"></script>
+  <script src="js/settings.js?v=1.9.0"></script>
   <script src="js/setting-api.js?v=1.3.0"></script>
   <!-- setting-image.js 必须排在 setting-api.js 之后：它复用那边的 apiKeyFieldHtml() /
        apiModalHtml() / apiModelsUrl() 等公共件和 API_* 常量 -->

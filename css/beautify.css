@@ -1,0 +1,405 @@
+/* ===== 美化页 ===== */
+/* 设计与理由见 PROMPT/19_美化页.md
+ * 页面外壳（.api-page / .api-scroll / .api-tabs / .api-btn…）整套复用 css/setting-api.css，
+ * 顶栏复用 css/settings.css 的 .settings-head 一组，本文件只写美化页独有的部件。
+ * 因此在 index.html 里必须排在这两个之后。
+ * 本页同样禁止 backdrop-filter 和 will-change，滑入只动 transform。 */
+
+.beauty-page {
+  /* 桌面缩略图的尺寸：只有这一处定义 */
+  --shot-w: 96px;
+  --shot-h: 178px;
+}
+
+/* 顶栏是一级页写法「返回键 + 左对齐大标题」，不用 .api-header 的居中标题 */
+.beauty-page .settings-head {
+  margin-bottom: 4px;
+}
+
+/* ===== 卡片：中文标题 + 右侧英文角标 ===== */
+.bt-card {
+  margin-top: 20px;
+  padding: var(--card-pad);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+}
+
+.bt-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bt-card-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--c-text);
+}
+
+/* 角标只是标签，不可点 */
+.bt-card-tag {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-3);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-sub);
+}
+
+.bt-card-desc {
+  margin: 8px 0 0;
+  font-size: var(--row-value-size);
+  line-height: 1.5;
+  color: var(--c-sub);
+}
+
+/* ===== 壁纸：左缩略图 + 右操作列 ===== */
+.bt-wall {
+  display: flex;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+/* 缩略图不用 aspect-ratio（老 iOS Safari 不认），直接写死宽高 */
+.bt-wall-shot {
+  position: relative;
+  flex: none;
+  width: var(--shot-w);
+  height: var(--shot-h);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 壁纸本体：背景图由 JS 写在这一层，没有图时露出下面的默认灰阶。
+   底色必须跟 #home-page 同一个变量，否则夜间模式下这里会剩一块白板 */
+.bt-wall-img {
+  position: absolute;
+  inset: 0;
+  background: var(--c-surface);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.bt-wall-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bt-wall-state {
+  padding: 0 2px 2px;
+}
+
+.bt-wall-state-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+}
+
+.bt-wall-state-sub {
+  margin-top: 4px;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+}
+
+/* .api-btn 的 flex: 1 只在横排的 .api-btn-row 里成立，竖排要自己撑满并锁高 */
+.bt-wall-side .api-btn {
+  flex: none;
+  width: 100%;
+}
+
+.bt-wall-hint {
+  margin-top: 2px;
+  padding: 0 2px;
+  font-size: var(--row-value-size);
+  line-height: 1.5;
+  color: var(--c-hint);
+}
+
+/* 读图 / 压缩期间锁住两个按钮，避免连点出两张壁纸 */
+.beauty-page .api-btn.is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ===== 预设按钮行 ===== */
+/* 目前只有按压反馈，点了什么都不发生 */
+.bt-preset-row {
+  margin-top: 12px;
+}
+
+/* ===== 分类卡槽 ===== */
+/* 与 setting-api.css 的 .voice-tab / .img-tab 同参数，只是各带各的类名前缀 */
+.api-tabs.bt-tabs {
+  height: 58px;
+}
+
+.bt-tab {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bt-tab-eyebrow {
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  line-height: 1.2;
+  /* letter-spacing 会在最后一个字母后面也加一份，居中文本要补等量左边距抵消 */
+  margin-left: 0.16em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-hint);
+  transition: color var(--dur) var(--ease);
+}
+.bt-tab.is-active .bt-tab-eyebrow { color: var(--c-sub); }
+
+.bt-tab-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.2;
+}
+
+/* ===== 主屏图标皮肤 ===== */
+/* 这两条作用在主屏的图标上，不在美化页内。放这里是因为它们属于美化功能，
+ * 且本文件排在 home.css 之后，改玻璃底里的内容不必动 home.css */
+.icon-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 不设 z-index：要压在 ::before / ::after 那圈 0.8px 玻璃描边之下 */
+}
+.icon-bg.has-img re-icon,
+.dock-icon-bg.has-img re-icon { display: none; }
+
+/* ===== 图标列表 ===== */
+/* 不参与筛选，圆角交给 :first-child / :last-child，不需要 JS 打类 */
+.bt-icon-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+  margin-top: 14px;
+}
+
+.bt-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 14px;
+  text-align: left;
+  background: var(--c-surface-3);
+  border-radius: var(--card-radius-in);
+  transition: background var(--dur) var(--ease);
+}
+.bt-icon-row:active { background: var(--c-border-m); }
+.bt-icon-row:first-child {
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+}
+.bt-icon-row:last-child {
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+}
+
+/* 列表与弹窗共用的图标底：美化页里没有壁纸可透，用实色代替玻璃。
+   固定这一档浅灰、不投影，不跟着「图标底色」变 —— 那是主屏纯色态才生效的东西 */
+.bt-icon-chip,
+.bt-edit-chip {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--c-surface);
+  box-shadow: none;
+}
+
+.bt-icon-chip {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.bt-chip-icon {
+  display: flex;
+  color: var(--c-accent-dark);       /* reicon 内部用 currentColor */
+}
+
+.bt-chip-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bt-icon-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bt-icon-row-name {
+  font-size: var(--row-name-size);
+  font-weight: var(--row-name-weight);
+  line-height: 1.3;
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bt-icon-row-sub {
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+}
+
+/* ===== 图标编辑弹窗 ===== */
+/* 外壳复用 .api-modal 一组，这里只写卡片里的内容 */
+.bt-edit-body {
+  flex: 1;
+  min-height: 0;
+  overscroll-behavior: contain;      /* 滚到头不把滚动链传给背后的 .api-scroll */
+}
+
+.bt-edit-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 18px;
+}
+
+.bt-edit-chip {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;               /* 与主屏 --icon-bg-radius 同值 */
+}
+
+.bt-edit-label {
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+}
+
+/* ===== 字段标题带右侧说明 ===== */
+.bt-field-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+/* 保留 .api-field-label 自带的 8px 下边距：这一行的下边界就靠它撑，
+   和没有说明的那两组标题到色块的间距才对得上 */
+.bt-field-head .api-field-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.bt-field-note {
+  flex: none;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  color: var(--c-hint);
+}
+
+/* ===== 色块 ===== */
+/* 七格「默认 + 六档灰」正好一行，尺寸和间距是按弹窗卡片内宽调的，不要放大。
+   左右各留 4px：选中态的外环往外扩 3px，贴着边会被 .bt-edit-body 的
+   overflow: auto 裁掉，第一颗和最后一颗都缺一块 */
+.bt-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px;
+}
+
+.bt-sw {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--sw, var(--c-surface-2));
+  box-shadow: inset 0 0 0 1px var(--c-border-m);
+  transition: transform 0.15s var(--ease);
+}
+.bt-sw:active { transform: scale(0.88); }
+
+/* 选中：外面套一圈细环，不改色块本身的大小，避免整行跳动 */
+.bt-sw.is-on {
+  box-shadow: inset 0 0 0 1px var(--c-border-m),
+              0 0 0 1.6px var(--c-bg),
+              0 0 0 3px var(--c-accent-dark);
+}
+
+/* 「默认」那一格没有颜色，用一个回退图标表示 */
+.bt-sw-default {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-surface-2);
+  color: var(--c-sub);
+}
+
+.bt-color-tip {
+  margin-top: 10px;
+  padding-left: 4px;
+  font-size: var(--row-value-size);
+  line-height: 1.4;
+  color: var(--c-hint);
+}
+
+/* .api-btn-row 自带 margin-top: 20px，弹窗里两行按钮之间不需要那么松 */
+.bt-modal .bt-img-row { margin-top: 18px; }
+.bt-modal .bt-foot-row { margin-top: 0; }
+
+/* ===== 分类面板占位 ===== */
+.bt-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 34px 20px;
+  border-radius: var(--card-radius-in);
+  background: var(--c-surface-3);
+  text-align: center;
+}
+
+.bt-soon re-icon { color: var(--c-hint); }
+
+.bt-soon-text {
+  font-size: var(--row-value-size);
+  line-height: 1.5;
+  color: var(--c-hint);
+}
+
+/* 减弱动态效果：取消横向位移，直接显示 / 隐藏 */
+@media (prefers-reduced-motion: reduce) {
+  .beauty-page,
+  .beauty-page.show {
+    transform: none;
+    transition: visibility 0s;
+  }
+}
