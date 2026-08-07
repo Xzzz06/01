@@ -12,6 +12,12 @@ var VERSION_ROWS = [
   { name: '软件说明' }
 ]
 
+// 署名。加人只往数组里追加，样式会自动均分列宽
+var VERSION_CREDITS = [
+  { role: '作者', name: '月酱' },
+  { role: '特别鸣谢', name: '小厌厌' }
+]
+
 var VERSION_CHEVRON_SIZE = 12
 
 var _verEl = null                // 页面根节点，建好后一直留在 DOM 里
@@ -32,6 +38,14 @@ function buildVersionPage() {
                   '<span class="ver-row-label">' + escapeHtml(VERSION_ROWS[i].name) + '</span>' +
                   '<span class="ver-row-chevron"><re-icon icon="chevron-right" size="' + VERSION_CHEVRON_SIZE + '"></re-icon></span>' +
                 '</button>'
+  }
+
+  var creditsHtml = ''
+  for (var j = 0; j < VERSION_CREDITS.length; j++) {
+    creditsHtml += '<div class="ver-credit-item">' +
+                     '<div class="ver-credit-role">' + escapeHtml(VERSION_CREDITS[j].role) + '</div>' +
+                     '<div class="ver-credit-name">' + escapeHtml(VERSION_CREDITS[j].name) + '</div>' +
+                   '</div>'
   }
 
   var el = document.createElement('div')
@@ -60,6 +74,9 @@ function buildVersionPage() {
 
       '<div class="ver-section-label">About</div>' +
       '<div class="ver-rows">' + rowsHtml + '</div>' +
+
+      '<div class="ver-section-label">Credits</div>' +
+      '<div class="ver-credit">' + creditsHtml + '</div>' +
     '</div>'
 
   app.appendChild(el)

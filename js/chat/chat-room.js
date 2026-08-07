@@ -29,7 +29,9 @@ var CV_MORE = [
   { name: '语音通话', icon: 'phone' },
   { name: '视频通话', icon: 'video' },
   { name: '位置',     icon: 'map-point' },
-  { name: '链接',     icon: 'link' }
+  { name: '链接',     icon: 'link' },
+  { name: '约会邀请',  icon: 'envelope-open' },
+  { name: '剧场',     icon: 'mask-happy' }
 ]
 
 // 本期没有接模型，对方不会自动回复。为了能看到对方那一侧的气泡、头像与连续效果，
