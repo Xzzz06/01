@@ -34,6 +34,24 @@ var CV_MORE = [
   { name: '剧场',     icon: 'mask-happy' }
 ]
 
+// 长按气泡弹出的操作菜单，一行四个、按数组顺序排。本期七项全是壳，点了什么都不做，
+// 之后接真功能时给各项加上 data-act 即可，排布不用动
+var CV_MENU = [
+  { name: '复制', icon: 'copy' },
+  { name: '撤回', icon: 'restart' },
+  { name: '引用', icon: 'square-top-up' },
+  { name: '收藏', icon: 'star' },
+  { name: '编辑', icon: 'pen' },
+  { name: '删除', icon: 'trash6' },
+  { name: '多选', icon: 'check-square' }
+]
+
+var CV_PRESS_MS = 500            // 与 home-drag.js 的 LONG_PRESS_MS 同值
+var CV_PRESS_CANCEL_PX2 = 100    // 10px：超过就判定为滚动，取消长按
+var CV_MENU_GAP = 8              // 菜单与气泡之间
+var CV_MENU_EDGE = 12            // 菜单离屏幕两侧
+var CV_MENU_SAFE = 8             // 菜单离顶栏 / 底栏
+
 // 本期没有接模型，对方不会自动回复。为了能看到对方那一侧的气泡、头像与连续效果，
 // 第一次进某个好友的会话时塞这两条。接真实回复时删掉它与 cvSeed() 即可，其余不动
 var CV_SEED = ['在忙吗？', '有空的话陪我聊会儿天吧。']
@@ -42,7 +60,10 @@ var _cvAll = null                // 全部会话，null 表示还没从存储里
 var _cvSeq = 0
 var _cvId = ''                   // 当前会话的好友 id
 
+var _cvPress = null              // 长按记账：{ pointerId, x, y, bubble, timer }
+
 var _cvEl = null
+var _cvHeaderEl = null
 var _cvBodyEl = null
 var _cvListEl = null
 var _cvEmptyEl = null
@@ -52,6 +73,9 @@ var _cvInputEl = null
 var _cvSendEl = null
 var _cvBarEl = null
 var _cvMoreModalEl = null
+var _cvMenuModalEl = null
+var _cvMenuEl = null
+var _cvMenuRowEl = null          // 当前被抬到遮罩之上的那一行
 
 // ===== 数据归一化 =====
 // 存储是用户可以随手改的，读回来的一律不能信
@@ -243,11 +267,13 @@ function buildChatRoomPage() {
     '</div>' +
 
     // 弹窗与 .cv-body 平级：放进滚动区会跟着消息一起滚
-    cvMoreModalHtml()
+    cvMoreModalHtml() +
+    cvMenuModalHtml()
 
   app.appendChild(el)
 
   // 缓存节点引用，之后不再查 DOM
+  _cvHeaderEl = el.querySelector('.cv-header')
   _cvBodyEl = el.querySelector('.cv-body')
   _cvListEl = el.querySelector('.cv-list')
   _cvEmptyEl = el.querySelector('.cv-empty')
@@ -257,6 +283,8 @@ function buildChatRoomPage() {
   _cvSendEl = el.querySelector('.cv-send')
   _cvBarEl = el.querySelector('.cv-bar')
   _cvMoreModalEl = el.querySelector('.cv-more-modal')
+  _cvMenuModalEl = el.querySelector('.cv-menu-modal')
+  _cvMenuEl = el.querySelector('.cv-menu')
 
   _cvEmptyEl.textContent = CV_EMPTY
 
@@ -284,6 +312,24 @@ function cvMoreModalHtml() {
   return html + '</div></div></div>'
 }
 
+// 长按气泡弹出的操作菜单：外壳仍是 .api-modal（纯色遮罩压暗），但里面不是居中卡片 ——
+// 菜单要贴着被按住的那条气泡，落点由 cvPlaceMenu() 现算，所以外壳的居中与留白都被清掉
+function cvMenuModalHtml() {
+  var html = '<div class="api-modal cv-menu-modal" hidden>' +
+               '<div class="api-modal-scrim" data-act="menu-close"></div>' +
+               '<div class="cv-menu" role="menu" aria-label="消息操作">'
+
+  for (var i = 0; i < CV_MENU.length; i++) {
+    var item = CV_MENU[i]
+    html += '<button class="cv-menu-item" type="button" role="menuitem">' +
+              '<re-icon icon="' + item.icon + '" size="16"></re-icon>' +
+              '<span class="cv-menu-label">' + escapeHtml(item.name) + '</span>' +
+            '</button>'
+  }
+
+  return html + '</div></div>'
+}
+
 // ===== 事件 =====
 function cvBindEvents(el) {
   var back = el.querySelector('.cv-back')
@@ -296,6 +342,7 @@ function cvBindEvents(el) {
     if (name === 'send') { cvSend(); return }
     if (name === 'more-open') { cvOpenMore(); return }
     if (name === 'more-close') { cvCloseMore(); return }
+    if (name === 'menu-close') { cvCloseMenu(); return }
     // 面板里的九项点了不关面板：它们什么都没做，关掉会假装成「操作已完成」
     if (name === 'todo') { showToast(CV_TODO); return }
   })
@@ -319,8 +366,58 @@ function cvBindEvents(el) {
     setTimeout(function() { cvScrollBottom() }, CV_SLIDE)
   })
 
+  // 长按气泡：按下在列表上认，移动与抬手在整页上认 —— 手指滑出列表之后
+  // pointerup 就不再落在列表里了，计时器会一直挂着
+  _cvListEl.addEventListener('pointerdown', cvPressStart)
+  el.addEventListener('pointermove', cvPressMove)
+  el.addEventListener('pointerup', cvCancelPress)
+  el.addEventListener('pointercancel', cvCancelPress)
+
+  // 安卓与桌面长按 / 右键会弹系统菜单，压在自己这套之上
+  el.addEventListener('contextmenu', function(e) {
+    if (e.target.closest('.cv-bubble')) e.preventDefault()
+  })
+
+  // 菜单的落点是开的那一刻按气泡位置算死的，滚一下就对不上了，直接收起
+  _cvBodyEl.addEventListener('scroll', function() {
+    if (!_cvMenuModalEl.hidden) cvCloseMenu()
+  })
+
   // 头像挂了退回默认图；error 不冒泡，只能用捕获
   el.addEventListener('error', cvImgFallback, true)
+}
+
+// ===== 长按 =====
+function cvPressStart(e) {
+  if (e.button) return                       // 只认主键
+  var bubble = e.target.closest('.cv-bubble')
+  if (!bubble) return
+
+  cvCancelPress()
+  _cvPress = {
+    pointerId: e.pointerId,
+    x: e.clientX,
+    y: e.clientY,
+    bubble: bubble,
+    timer: setTimeout(function() {
+      var p = _cvPress
+      _cvPress = null
+      if (p) cvOpenMenu(p.bubble)
+    }, CV_PRESS_MS)
+  }
+}
+
+function cvPressMove(e) {
+  if (!_cvPress || _cvPress.pointerId !== e.pointerId) return
+  var dx = e.clientX - _cvPress.x
+  var dy = e.clientY - _cvPress.y
+  if (dx * dx + dy * dy > CV_PRESS_CANCEL_PX2) cvCancelPress()
+}
+
+function cvCancelPress() {
+  if (!_cvPress) return
+  clearTimeout(_cvPress.timer)
+  _cvPress = null
 }
 
 function cvImgFallback(e) {
@@ -341,6 +438,8 @@ function cvPaintPeer(face) {
 // 同一个人连着发的算一组：头像只贴第一条、时间只挂最后一条、组内相邻的角收小。
 // 换天必定断组 —— 分隔线插在中间，跨着它还连续会看着很怪
 function cvRenderList(face) {
+  cvCloseMenu()                    // 重画会换掉整份行元素，亮着的那一行会变成再也收不回的孤儿
+
   var list = cvList(_cvId)
   if (!list.length) {
     _cvListEl.innerHTML = ''
@@ -438,6 +537,58 @@ function cvCloseMore() {
   ctHideModal(_cvMoreModalEl)
 }
 
+// ===== 长按操作菜单 =====
+// 本期七项全是壳，点了什么都不做、也不关菜单 —— 收起只走点遮罩。
+// 两侧的人共用同一份菜单：哪几项该按「我发的 / 对方发的」区分，等接真功能时再挑
+function cvOpenMenu(bubble) {
+  var row = bubble.closest('.cv-row')
+  if (!row) return
+
+  cvCloseMenu()                              // 上一条还亮着的话先收掉
+  _cvMenuRowEl = row
+  row.classList.add('is-acting')             // 抬到遮罩之上：压暗整页，只留这一条
+
+  // 先去 hidden 才量得到菜单尺寸，落点定完再交给 ctShowModal() 走淡入
+  _cvMenuModalEl.hidden = false
+  cvPlaceMenu(bubble, row.classList.contains('is-me'))
+  ctShowModal(_cvMenuModalEl)
+}
+
+function cvCloseMenu() {
+  if (_cvMenuRowEl) {
+    _cvMenuRowEl.classList.remove('is-acting')
+    _cvMenuRowEl = null
+  }
+  ctHideModal(_cvMenuModalEl)
+}
+
+// 菜单贴着气泡：优先落在上方，上面塞不下才翻到下方，两个方向都夹在顶栏与底栏之间。
+// 横向跟着消息靠边 —— 我发的贴气泡右缘、对方的贴左缘，再夹进屏幕两侧
+function cvPlaceMenu(bubble, mine) {
+  var page = _cvEl.getBoundingClientRect()
+  var b = bubble.getBoundingClientRect()
+  var w = _cvMenuEl.offsetWidth
+  var h = _cvMenuEl.offsetHeight
+
+  var minTop = _cvHeaderEl.offsetHeight + CV_MENU_SAFE
+  var maxTop = page.height - _cvBarEl.offsetHeight - CV_MENU_SAFE - h
+  var above = b.top - page.top - CV_MENU_GAP - h >= minTop
+  var top = above ? b.top - page.top - CV_MENU_GAP - h
+                  : b.bottom - page.top + CV_MENU_GAP
+  if (top > maxTop) top = maxTop
+  if (top < minTop) top = minTop             // 顺序不能反：屏幕矮到两头夹不下时以顶栏为准
+
+  var left = mine ? b.right - page.left - w : b.left - page.left
+  var maxLeft = page.width - CV_MENU_EDGE - w
+  if (left > maxLeft) left = maxLeft
+  if (left < CV_MENU_EDGE) left = CV_MENU_EDGE
+
+  _cvMenuEl.style.top = top + 'px'
+  _cvMenuEl.style.left = left + 'px'
+  // 从贴着气泡的那个角长出来，不是从菜单正中
+  _cvMenuEl.style.transformOrigin = (above ? 'bottom ' : 'top ') + (mine ? 'right' : 'left')
+}
+
 // 打开与发送后都直接跳到底：滚动过程只是噪音，不做平滑
 function cvScrollBottom() {
   if (_cvBodyEl) _cvBodyEl.scrollTop = _cvBodyEl.scrollHeight
@@ -478,7 +629,9 @@ function closeChatRoom() {
   if (!_cvEl) return
 
   _cvInputEl.blur()                          // 收起软键盘，否则滑出时键盘还杵在那里
+  cvCancelPress()                            // 计时器还挂着的话，菜单会在页面滑走之后才弹出来
   cvCloseMore()                              // 面板不能留在屏幕上跟着页面一起滑出去
+  cvCloseMenu()
   _cvEl.classList.remove('show')
   _cvEl.setAttribute('aria-hidden', 'true')
 

@@ -24,6 +24,9 @@
    * 与主页面的 --ct-row-name-size 一样只在本页局部定义，不往 :root 加 */
   --cv-name-size: 16px;
   --cv-text-size: 14px;
+  /* 长按菜单的字，比 --row-value-size 再小一档：菜单是贴着气泡的小卡片，
+   * 用 12px 会把整张卡撑得比气泡还抢眼。同样只在本页局部定义，不往 :root 加 */
+  --cv-menu-label-size: 11px;
 
   position: absolute;            /* #app 是 position: relative，见 base.css */
   inset: 0;
@@ -405,6 +408,67 @@
   text-overflow: ellipsis;
 }
 
+/* ===== 长按操作菜单 ===== */
+/* 外壳仍是 .api-modal（纯色遮罩压暗、无毛玻璃），但菜单不居中：它贴着被按住的那条气泡，
+ * 落点由 cvPlaceMenu() 写成内联样式。
+ * 外壳的 padding 必须清零 —— 绝对定位的菜单以外壳的 padding box 为原点，
+ * 留着 .api-modal 那圈 24/20 会让算出来的 top / left 整体偏移 */
+.cv-menu-modal { padding: 0; }
+
+/* 长按选中的那一行抬到遮罩之上，压暗整页只留它自己。
+ * .cv-body 没有形成层叠上下文，这个序号直接与 .api-modal 的 5 比大小 */
+.cv-row.is-acting {
+  position: relative;
+  z-index: 6;
+}
+
+.cv-menu {
+  position: absolute;
+  top: 0;                        /* 真实落点由 cvPlaceMenu() 覆盖，这里只是兜底 */
+  left: 0;
+  z-index: 1;                    /* 压在遮罩之上，与 .api-modal-card 同一档 */
+  width: 224px;                  /* 一行四个，宽度定死菜单才好算落点 */
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-lg);
+  /* 七项排成 4 / 3，最后一行留在左边不居中 —— 与加号面板同一个手法 */
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.16s var(--ease), transform 0.16s var(--ease);
+}
+.cv-menu-modal.show .cv-menu {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 这里的图标不套灰圆：菜单本身就是一张小卡片，再叠一层圆会挤成一团 */
+.cv-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 7px 2px;
+  border-radius: 12px;
+  color: var(--c-accent-dark);   /* reicon 内部用 currentColor */
+  transition: background var(--dur) var(--ease);
+}
+.cv-menu-item:active { background: var(--press-bg); }
+
+.cv-menu-label {
+  max-width: 100%;
+  font-size: var(--cv-menu-label-size);
+  line-height: 1.2;
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ===== 夜间模式 ===== */
 /* 暗底上再压一层浅灰会糊成一片，对方那侧换成比页面底更暗的一档 */
 :root[data-theme="dark"] .cv-page {
@@ -428,4 +492,10 @@
   .cv-tool:active,
   .cv-send:active,
   .cv-more-item:active .cv-more-ico { transform: none; }
+  /* 菜单只保留淡入，去掉缩放，与 .api-modal-card 一致 */
+  .cv-menu {
+    transform: none;
+    transition: opacity 0.15s linear;
+  }
+  .cv-menu-modal.show .cv-menu { transform: none; }
 }
