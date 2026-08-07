@@ -849,9 +849,10 @@ function ctRowHtml(c, kind) {
   } else {
     // 会话行的摘要与时间跟着最后一条消息走（cvLast() 由 chat-room.js 提供），
     // 一条都没有才退回「暂无聊天记录」与添加好友的时刻
+    // 摘要文案走 cvSummary()：语音条在列表里只显示 [语音]，不摊开里面那段文字
     var last = cvLast(c.id)
     sub = last
-      ? '<div class="ct-row-sub">' + escapeHtml(ctOneLine(last.text)) + '</div>'
+      ? '<div class="ct-row-sub">' + escapeHtml(ctOneLine(cvSummary(last))) + '</div>'
       : '<div class="ct-row-sub is-empty">' + CT_NO_MSG + '</div>'
     time = '<div class="ct-row-time">' + escapeHtml(ctTime(last ? last.at : c.addedAt)) + '</div>'
   }

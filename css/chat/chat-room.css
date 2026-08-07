@@ -18,7 +18,14 @@
   /* 与聊天主页面同一套：页面底是白，按钮按压与输入框是浅灰 */
   --cv-fill: var(--c-surface);
 
+  /* 语音条转出来的文字块，见 §11。两个主题共用这一组，夜间不覆盖 */
+  --cv-note-bg: var(--c-bg);
+  --cv-note-line: var(--c-border-m);
+
   --press-bg: var(--c-surface-3);   /* 面板图标的按压底，与 .api-page / .ct-page 同值 */
+  /* .api-btn 的高度取这个变量，而它是各页各自声明的（46px，全站同值）——
+   * 本页借了 .api-btn 就必须补一份，缺了按钮会塌成一条 22px 的窄片 */
+  --btn-h: 46px;
 
   /* 顶栏昵称 16px、气泡正文 14px，:root 里都没有这两档，
    * 与主页面的 --ct-row-name-size 一样只在本页局部定义，不往 :root 加 */
@@ -469,6 +476,329 @@
   text-overflow: ellipsis;
 }
 
+/* ===== 多选态 ===== */
+/* 顶栏与底栏都是整条换掉，不是在原来那条上加东西 ——
+ * 多选是另一个状态，半换半留会让人分不清自己在哪一档里 */
+.cv-pick-header,
+.cv-pick-bar { display: none; }
+
+.cv-page.is-picking .cv-header,
+.cv-page.is-picking .cv-bar { display: none; }
+.cv-page.is-picking .cv-pick-header,
+.cv-page.is-picking .cv-pick-bar { display: flex; }
+
+.cv-pick-header {
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  /* 与 .cv-header 同高（头像 38 + 上下 20），进出多选时消息不会跳。
+   * 安全区一律用加法，不能用 max() */
+  min-height: calc(var(--cv-peer-avatar) + 20px + var(--sat));
+  padding: calc(10px + var(--sat)) 14px 10px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* 两端定死同宽，中间的计数才是真居中 —— 「取消全选」比「全选」长两个字，
+ * 不定宽的话计数会跟着左右晃 */
+.cv-pick-text {
+  flex: none;
+  min-width: 56px;
+  padding: 4px 0;
+  font-size: var(--font-size-body);
+  color: var(--c-sub);
+  transition: opacity var(--dur) var(--ease);
+}
+.cv-pick-text:active { opacity: 0.55; }
+.cv-pick-cancel { text-align: left; }
+.cv-pick-all { text-align: right; }
+
+.cv-pick-count {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--cv-name-size);
+  font-weight: var(--page-title-weight);
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cv-pick-bar {
+  flex: none;
+  align-items: center;
+  /* 与 .cv-bar 同一套留白 */
+  padding: 8px 12px calc(8px + var(--sab));
+  border-top: 1px solid var(--c-border);
+  background: var(--c-bg);
+}
+
+.cv-pick-act {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 2px;
+  color: var(--c-accent-dark);   /* reicon 内部用 currentColor */
+  transition: opacity var(--dur) var(--ease);
+}
+.cv-pick-act:active { opacity: 0.55; }
+
+.cv-pick-act span {
+  max-width: 100%;
+  font-size: var(--cv-menu-label-size);
+  line-height: 1.2;
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 一条都没勾：三颗键压成最弱字色，点了也不动（拦在 cvPickDelete() 里，不用 disabled ——
+ * 那会让按钮连按压反馈都没有，本站另外两处壳按钮也是这么处理的） */
+.cv-pick-bar.is-idle .cv-pick-act,
+.cv-pick-bar.is-idle .cv-pick-act span { color: var(--c-hint); }
+.cv-pick-bar.is-idle .cv-pick-act:active { opacity: 1; }
+
+/* 勾选圈：平时不显示也不占位，只有多选态才出现在气泡组的外侧。
+ * 双方都有头像，圈跟着落在各自那一侧，与整页的对称是一套 */
+.cv-check {
+  flex: none;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 6px;               /* 行是 flex-start，往下挪一点才与气泡首行对齐 */
+  border-radius: 50%;
+  border: 1.5px solid var(--c-border-m);
+  color: transparent;            /* 勾平时藏在圈里，选中才染出来 */
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+.cv-page.is-picking .cv-check { display: flex; }
+
+.cv-row.is-picked .cv-check {
+  border-color: var(--c-text);
+  background: var(--c-text);
+  color: var(--c-bg);
+}
+
+/* ===== 语音条 ===== */
+/* 本站没有录音也没有声音，语音条是按字数算出来的模拟件，见 PROMPT/21_聊天会话页.md §11。
+ * 条里所有颜色都走 currentColor —— 它就是气泡的字色，我方 / 对方、白天 / 夜间四种组合
+ * 全都自动跟着走，不必为语音条再写一套变量 */
+.cv-bubble.cv-voice {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  white-space: normal;           /* 气泡基座是 pre-wrap，换行交给展开的那段文字自己管 */
+  cursor: pointer;
+  -webkit-user-select: none;     /* 长按是弹菜单，不该顺手选中里面的字 */
+  user-select: none;
+}
+
+.cv-voice-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 播放键是图标自带的那圈圆（play-circle / pause-circle 的加粗版），不再另套底色圆 */
+.cv-voice-key {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cv-voice-key re-icon { display: block; }
+/* 两枚图标叠在结构里、每次只露一枚：停着露 play-circle，播着露 pause-circle。
+ * 后面两条必须同时写，只写「播放时藏 play」会变成播放期间一枚都不剩 */
+.cv-voice .cv-ico-pause { display: none; }
+.cv-voice.is-playing .cv-ico-play { display: none; }
+.cv-voice.is-playing .cv-ico-pause { display: block; }
+
+/* 波形能被压缩但不许长大：窄屏上宁可裁掉尾巴几根，也不能把气泡顶出 .cv-col 那 74% */
+.cv-wave {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cv-wave-track {
+  display: flex;
+  align-items: center;
+  gap: 3px;                      /* 与 chat-room.js 的 CV_WAVE_GAP 同值 */
+  height: 20px;                  /* 必须等于 CV_WAVE_H 里的最大值 */
+}
+.cv-wave-track > i {
+  flex: none;
+  width: 3px;                    /* 与 chat-room.js 的 CV_WAVE_BAR 同值 */
+  border-radius: 2px;
+  background: currentColor;
+}
+
+/* 底下这份压暗当底，上面那份是已经播过的部分 */
+.cv-wave > .cv-wave-track { opacity: 0.32; }
+
+.cv-wave-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0;                      /* 播放时由动画走到满 */
+  overflow: hidden;
+}
+/* 不给 right：这份波形要始终是整条的宽度，跟着裁剪层缩就成了一根根被挤扁 */
+.cv-wave-fill .cv-wave-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+@keyframes cv-wave-run {
+  from { width: 0; }
+  to { width: 100%; }
+}
+/* 时长由 cvPlay() 写成内联的 --cv-play。forwards 是为了走完停在满格，
+ * 停下来那一下由 cvStopPlay() 摘掉 is-playing 一次归零 */
+.cv-voice.is-playing .cv-wave-fill {
+  animation: cv-wave-run var(--cv-play, 3s) linear forwards;
+}
+
+.cv-voice-secs {
+  flex: none;
+  font-size: var(--label-size);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+/* 转出来的文字是气泡下面**另起的一块**，不是气泡的一部分 ——
+ * 塞回气泡里会看着像这条语音自己变长了。
+ * 底色两个主题都用 --c-bg 加一圈细边：夜间 --c-bg 与页面底同色，全靠这圈边立住，
+ * 于是它既不像我方气泡也不像对方气泡，一眼就知道是附在语音上的转写 */
+.cv-voice-note {
+  display: none;
+  max-width: 100%;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border: 1px solid var(--cv-note-line);
+  border-radius: 14px;
+  background: var(--cv-note-bg);
+  font-size: var(--cv-text-size);
+  line-height: 1.2;
+  color: var(--c-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+/* 展开状态记在气泡身上，文字块是它的相邻兄弟 —— 结构上两者必须紧挨着 */
+.cv-voice.is-open + .cv-voice-note { display: block; }
+
+/* ===== 写语音弹窗 ===== */
+/* 居中卡片，骨架与「添加好友」那几张同一套（.api-modal 默认就是居中），本节只写卡里的东西 */
+.cv-voice-field {
+  display: flex;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: var(--c-surface-2);
+}
+
+.cv-voice-input {
+  flex: 1;
+  min-width: 0;
+  height: 72px;                  /* 三行，说长了内部滚，卡的高度不跟着涨 */
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  line-height: 24px;             /* 与 height 是一套，改一个要一起改 */
+  color: var(--c-text);
+  resize: none;
+  overflow-y: auto;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cv-voice-input::placeholder { color: var(--c-hint); }
+
+/* 麦克风整块居中：圆在上、状态文字在下 ——
+ * 与加号面板那种「灰圆 + 下面一行字」是同一个形态，按压反馈也一样落在圆上不缩文字 */
+.cv-voice-mic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 0;
+}
+
+.cv-voice-mic-ring {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-accent-dark);   /* reicon 内部用 currentColor */
+  transition:
+    transform 0.15s var(--ease),
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+.cv-voice-mic:active .cv-voice-mic-ring {
+  transform: scale(0.9);
+  background: var(--press-bg);
+}
+
+.cv-voice-mic-text {
+  max-width: 100%;
+  text-align: center;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 正在听：圈翻成深底浅字并一直脉冲 —— 这张卡上唯一会动的东西，只用来说明麦克风还开着 */
+.cv-voice-mic.is-on .cv-voice-mic-ring {
+  background: var(--c-accent-dark);
+  color: var(--c-bg);
+  animation: cv-mic-pulse 1.6s var(--ease) infinite;
+}
+@keyframes cv-mic-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--c-surface-3); }
+  70%  { box-shadow: 0 0 0 9px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* 这台浏览器没有语音识别：整块压成最弱字色，但不藏也不 disabled ——
+ * 点了要能弹一句说清为什么，与 .cv-send.is-idle 是同一个处理 */
+.cv-voice-mic.is-idle .cv-voice-mic-ring,
+.cv-voice-mic.is-idle .cv-voice-mic-text { color: var(--c-hint); }
+
+/* 两颗按钮并排：.api-btn-row 自带的 margin-top 交给外面那层 .api-modal-foot 的 padding，
+ * 与美化页的 .bt-foot-row 是同一个处理 */
+.cv-voice-row { margin-top: 0; }
+
+/* 一个字都没有：发送键压暗，点了也不发（拦在 cvVoiceSend() 里） */
+.cv-voice-send.is-idle,
+.cv-voice-send.is-idle:active {
+  background: var(--c-surface-2);
+  color: var(--c-hint);
+}
+
 /* ===== 夜间模式 ===== */
 /* 暗底上再压一层浅灰会糊成一片，对方那侧换成比页面底更暗的一档 */
 :root[data-theme="dark"] .cv-page {
@@ -498,4 +828,12 @@
     transition: opacity 0.15s linear;
   }
   .cv-menu-modal.show .cv-menu { transform: none; }
+  .cv-check,
+  .cv-pick-text,
+  .cv-pick-act { transition: none; }
+  /* 麦克风的脉冲是纯装饰，去掉；语音条的波形照走 ——
+   * 它是「播到哪儿了」的唯一反馈，去掉就等于这条语音点了没反应 */
+  .cv-voice-mic.is-on .cv-voice-mic-ring { animation: none; }
+  .cv-voice-mic-ring { transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
+  .cv-voice-mic:active .cv-voice-mic-ring { transform: none; }
 }
