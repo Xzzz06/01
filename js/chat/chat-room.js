@@ -15,7 +15,7 @@ var CV_MSG_KEY = 'chat.messages'
 
 var CV_ONLINE = 'Online'
 var CV_PLACEHOLDER = 'Message...'
-var CV_EMPTY = '还没有消息\n说点什么吧'
+var CV_EMPTY = '暂无历史消息'
 var CV_TODO = '功能开发中'
 
 // 底栏加号弹出的面板，一行四个、按数组顺序排。本期九项全是壳，点了只弹一句提示，
@@ -198,7 +198,7 @@ function buildChatRoomPage() {
     '<div class="cv-header">' +
       // 返回键与右边两颗图标同一款：不套灰底圆，只是一枚图标
       '<button class="cv-act cv-back" type="button" aria-label="返回">' +
-        '<re-icon icon="arrow-left" size="20"></re-icon>' +
+        '<re-icon icon="angle-left" size="20"></re-icon>' +
       '</button>' +
       '<div class="cv-peer">' +
         '<span class="cv-peer-avatar"><img src="' + AVATAR_FALLBACK + '" alt=""></span>' +

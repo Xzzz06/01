@@ -1,15 +1,5 @@
 // ===== 聊天主页面 =====
-// 设计与理由见 PROMPT/17_聊天主页面.md
-// 注册完成后进入的一级页：Chats / Contacts / Me 三个面板共用一个页面壳。
-//
-// 依赖：store.js、home.js（escapeHtml / showToast）、setting-api.js（.api-header /
-//       .api-modal / .api-btn / .api-field-box 与 apiApplyRowCorners()）、
-//       avatar-picker.js（openAvatarPicker / closeAvatarPicker / AVATAR_FALLBACK）、
-//       profile.js（PF_KEY / pfNormalizeList / pfAvatar / PF_GROUP_DEFAULT）、
-//       chat-register.js（openChatRegisterPage / crHideNow）。必须排在它们之后加载。
-// 会话行点开、会话摘要、删好友与注销时清消息都要用 chat-room.js 的
-// openChatRoom() / cvLast() / cvDropMessages() / cvClearAll()，那个文件排在本文件之后，
-// 只在渲染与用户点下去时才会用到，解析期不依赖。
+// 详情参考 PROMPT/17_聊天主页面.md
 
 var CT_SLIDE = 300               // 必须与 css/chat/chat-main.css .ct-page 的 transition 一致
 var CT_ACCOUNT_KEY = 'chat.account'
@@ -17,7 +7,7 @@ var CT_CONTACTS_KEY = 'chat.contacts'
 
 var CT_ICON = 16
 var CT_NAME_DEFAULT = 'Untitled'
-var CT_NO_MSG = '还没有聊天记录'
+var CT_NO_MSG = '暂无聊天记录'
 var CT_MASK_HINT = '此处填写用户人设'
 
 var CT_PANELS = ['chats', 'contacts', 'me']
@@ -790,8 +780,8 @@ function ctRenderChats() {
 
 function ctChatsEmptyText(q) {
   if (q) return '没有匹配的聊天'
-  if (_ctContacts.length && _ctTab === 'folder') return '这个分组暂时没有好友'
-  return '暂时没有添加好友'
+  if (_ctContacts.length && _ctTab === 'folder') return '该分组暂无好友'
+  return '暂未添加好友'
 }
 
 function ctRenderContacts() {
@@ -807,7 +797,7 @@ function ctRenderContacts() {
   }
 
   _ctListEls.contacts.innerHTML = ctSectionsHtml(list, 'contacts', 'friend')
-  var empty = list.length ? '' : (q ? '没有匹配的联系人' : '还没有联系人\n点右上角 + 添加')
+  var empty = list.length ? '' : (q ? '没有匹配的联系人' : '暂未添加联系人')
   ctPaintEmpty('contacts', empty)
 }
 
@@ -858,7 +848,7 @@ function ctRowHtml(c, kind) {
     time = ''
   } else {
     // 会话行的摘要与时间跟着最后一条消息走（cvLast() 由 chat-room.js 提供），
-    // 一条都没有才退回「还没有聊天记录」与添加好友的时刻
+    // 一条都没有才退回「暂无聊天记录」与添加好友的时刻
     var last = cvLast(c.id)
     sub = last
       ? '<div class="ct-row-sub">' + escapeHtml(ctOneLine(last.text)) + '</div>'
@@ -950,7 +940,7 @@ function ctOpenPickModal() {
   _ctPickModalEl.querySelector('.api-modal-eyebrow').textContent = 'FROM PROFILE'
   _ctPickListEl.innerHTML = html
   _ctPickListEl.scrollTop = 0
-  ctPaintTip(_ctPickTipEl, count ? '' : '档案里还没有角色')
+  ctPaintTip(_ctPickTipEl, count ? '' : '档案暂无角色')
   ctShowModal(_ctPickModalEl)
 }
 
@@ -985,7 +975,7 @@ function ctAddFromChar(charId) {
   if (!c) { showToast('这个角色已经不在档案里'); return }
 
   var chatId = c.accountId.trim()
-  if (!chatId) { showToast('这个角色还没有设置 Chat ID'); return }
+  if (!chatId) { showToast('这个角色暂未设置 Chat ID'); return }
   if (ctHasChar(c.id, chatId)) { showToast('已经在好友里了'); return }
 
   _ctIdSeq++

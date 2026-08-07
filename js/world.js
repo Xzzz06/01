@@ -858,9 +858,9 @@ function wbRowHtml(b) {
 function wbEmptyText(base) {
   if (_wbQuery.trim()) return '没有匹配的世界书'
   if (!_wbBooks.length) return ''      // 一本都没有时不留提示，底部两个按钮已经说明了下一步
-  if (_wbCat && !base.length) return '「' + _wbCat + '」分类暂时没有世界书'
-  if (_wbScope === 'global') return '暂时没有全局世界书'
-  if (_wbScope === 'local') return '暂时没有局部世界书'
+  if (_wbCat && !base.length) return '「' + _wbCat + '」该分类暂无世界书'
+  if (_wbScope === 'global') return '暂无全局世界书'
+  if (_wbScope === 'local') return '暂无局部世界书'
   return '没有可显示的世界书'
 }
 
@@ -1085,7 +1085,7 @@ function wbBindModalHtml() {
                '<div class="api-modal-eyebrow">SELECT CHARACTER</div>' +
              '</div>' +
              '<div class="api-modal-list scroll-area"></div>' +
-             '<div class="api-modal-empty" hidden>还没有角色，先去档案页创建</div>' +
+             '<div class="api-modal-empty" hidden>暂无角色，前往档案创建</div>' +
              '<div class="api-modal-foot wb-modal-foot">' +
                '<button class="api-btn" type="button" data-act="bind-cancel">取消</button>' +
                '<button class="api-btn api-btn-primary" type="button" data-act="bind-ok">确定</button>' +

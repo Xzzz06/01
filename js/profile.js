@@ -946,12 +946,12 @@ function pfRenderList() {
 }
 
 function pfEmptyText() {
-  if (_pfQuery.trim()) return '没有匹配的角色'
+  if (_pfQuery.trim()) return '暂无匹配角色'
   if (!_pfChars.length) return ''                   // 一个角色都没有：底部两颗新建按钮已经说清楚了
-  if (_pfTab === 'special') return '暂时没有收藏的角色'
-  if (_pfTab === 'char') return '暂时没有 CHAR 角色'
-  if (_pfTab === 'npc') return '暂时没有 NPC 角色'
-  return '这个分组下还没有角色'
+  if (_pfTab === 'special') return '暂无收藏角色'
+  if (_pfTab === 'char') return '暂无 CHAR 角色'
+  if (_pfTab === 'npc') return '暂无 NPC 角色'
+  return '该分组下暂无角色'
 }
 
 function pfRenderAll() {

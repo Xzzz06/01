@@ -10,10 +10,10 @@
 
   /* 气泡配色只在这四个变量上调，不要去改下面的具体规则。
    * 夜间模式在文件末尾整组覆盖一次 */
-  --cv-me-bg: var(--c-text);
-  --cv-me-fg: var(--c-bg);
-  --cv-ta-bg: var(--c-hint);
-  --cv-ta-fg: var(--c-bg);
+  --cv-me-bg: var(--c-surface-2);
+  --cv-me-fg: var(--c-text);
+  --cv-ta-bg: var(--c-surface);
+  --cv-ta-fg: var(--c-text);
 
   /* 与聊天主页面同一套：页面底是白，按钮按压与输入框是浅灰 */
   --cv-fill: var(--c-surface);
