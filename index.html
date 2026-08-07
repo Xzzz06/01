@@ -54,6 +54,8 @@
   <!-- chat-main.css 复用 setting-api.css 的顶栏 / 弹窗与 chat-register.css 的字段 / 折叠块，
        必须排在这两个之后 -->
   <link rel="stylesheet" href="css/chat/chat-main.css?v=1.4.0">
+  <!-- chat-room.css 是聊天主页面的下一级，只写自己的差异，必须排在 chat-main.css 之后 -->
+  <link rel="stylesheet" href="css/chat/chat-room.css?v=1.2.0">
   <!-- beautify.css 复用 settings.css 的顶栏与 setting-api.css 的卡槽 / 按钮，必须排在这两个之后 -->
   <link rel="stylesheet" href="css/beautify.css?v=1.5.0">
   <!-- setting-theme.css 复用 setting-api.css 的外壳 / 卡槽，还要覆盖 home.css 与
@@ -141,7 +143,10 @@
   <script src="js/chat/chat-register.js?v=1.2.0"></script>
   <!-- chat-main.js 必须排在 chat-register.js 之后：注册成功后由它接手，
        也要用 profile.js 的 PF_KEY / pfNormalizeList() 读同一份角色数据 -->
-  <script src="js/chat/chat-main.js?v=1.4.0"></script>
+  <script src="js/chat/chat-main.js?v=1.5.0"></script>
+  <!-- chat-room.js 必须排在 chat-main.js 之后：会话页要用那边的
+       ctFindContact() / ctFace() / ctMyAvatar() / ctRenderChats() 读同一份好友数据 -->
+  <script src="js/chat/chat-room.js?v=1.2.0"></script>
   <script src="js/boot.js?v=1.2.0"></script>
 
   <script src="js/sw-register.js?v=1.0.0"></script>

@@ -1,0 +1,431 @@
+/* ===== 聊天会话页 ===== */
+/* 设计与理由见 PROMPT/21_聊天会话页.md
+ * 本文件禁止出现 backdrop-filter 和 will-change，滑入只动 transform。
+ * 颜色一律取 base.css 已有变量，本页不写十六进制。 */
+.cv-page {
+  --cv-avatar: 32px;             /* 气泡旁的头像，比列表行那颗小一档 */
+  --cv-peer-avatar: 38px;        /* 顶栏里的对方头像 */
+  --cv-radius: 20px;
+  --cv-radius-in: 6px;           /* 一组里贴着上/下一条的那个角 */
+
+  /* 气泡配色只在这四个变量上调，不要去改下面的具体规则。
+   * 夜间模式在文件末尾整组覆盖一次 */
+  --cv-me-bg: var(--c-text);
+  --cv-me-fg: var(--c-bg);
+  --cv-ta-bg: var(--c-hint);
+  --cv-ta-fg: var(--c-bg);
+
+  /* 与聊天主页面同一套：页面底是白，按钮按压与输入框是浅灰 */
+  --cv-fill: var(--c-surface);
+
+  --press-bg: var(--c-surface-3);   /* 面板图标的按压底，与 .api-page / .ct-page 同值 */
+
+  /* 顶栏昵称 16px、气泡正文 14px，:root 里都没有这两档，
+   * 与主页面的 --ct-row-name-size 一样只在本页局部定义，不往 :root 加 */
+  --cv-name-size: 16px;
+  --cv-text-size: 14px;
+
+  position: absolute;            /* #app 是 position: relative，见 base.css */
+  inset: 0;
+  z-index: 11;                   /* 压在 .ct-page（10）之上，主页面不必再藏 */
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);       /* 必须不透明，完整盖住主页面 */
+
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s linear 0.3s;
+}
+
+.cv-page.show {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform 0.3s var(--ease),
+    visibility 0s;
+}
+
+/* hidden 属性来自 UA 样式表，本文件里的 display 声明会盖掉它，补一条更高优先级的 */
+.cv-page [hidden] { display: none; }
+
+/* ===== 顶栏：返回键 + 对方 + 两颗图标 ===== */
+.cv-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* 安全区一律用加法，不能用 max() */
+  padding: calc(10px + var(--sat)) 14px 10px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* 返回键与右边两颗图标共用 .cv-act：本页顶栏一行三段挤得紧，
+ * 不套其余页面那种灰底圆钮，尺寸与高度跟着图标走 */
+.cv-back { flex: none; }
+
+.cv-peer {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* padding 必须清零：<button> 自带内边距，包着头像时会把圆压扁 */
+.cv-peer-avatar {
+  flex: none;
+  width: var(--cv-peer-avatar);
+  height: var(--cv-peer-avatar);
+  padding: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--cv-fill);
+}
+.cv-peer-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.cv-peer-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cv-peer-name {
+  display: block;
+  font-size: var(--cv-name-size);
+  font-weight: var(--page-title-weight);
+  line-height: 1.25;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cv-peer-state {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+}
+
+/* 在线点是 CSS 画的正圆：全站灰阶，不要因为「在线」就上绿色 */
+.cv-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-accent);
+}
+
+.cv-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cv-act {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--c-sub);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.cv-act:active {
+  transform: scale(0.88);
+  background: var(--cv-fill);
+  color: var(--c-text);
+}
+
+/* ===== 消息区 ===== */
+.cv-body {
+  flex: 1;                       /* .scroll-area 不带 flex: 1 */
+  min-height: 0;
+  padding: 14px 16px 18px;
+  overscroll-behavior: contain;  /* 滚到头不把滚动链传出去 */
+}
+
+.cv-day {
+  margin: 18px 0 12px;
+  text-align: center;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: 0.12em;
+  color: var(--c-hint);
+}
+.cv-day:first-child { margin-top: 0; }
+
+/* 空状态文案里的换行由 textContent 带进来，靠 pre-line 生效 */
+.cv-empty {
+  padding: 44px 24px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+  color: var(--c-hint);
+}
+
+/* ===== 气泡 ===== */
+/* 一行 = 头像位 + 气泡列。我方整行反向，头像就跑到右边去了 */
+.cv-row {
+  display: flex;
+  align-items: flex-start;       /* 头像顶着一组的第一条，不跟着长气泡往下掉 */
+  gap: 8px;
+  margin-top: 2px;               /* 组内间距 */
+}
+.cv-row.is-first { margin-top: 14px; }
+.cv-row.is-me { flex-direction: row-reverse; }
+
+/* 列表第一行头上不留空 —— 分隔线自己带 margin，气泡组不必再叠一层 */
+.cv-list > .cv-row:first-child { margin-top: 0; }
+
+/* 一组里只有第一条带 <img>，其余是空壳，留着是为了让后面的气泡与它对齐。
+ * 空壳不能有底色，否则会多出一串灰圆 */
+.cv-face {
+  flex: none;
+  display: block;
+  width: var(--cv-avatar);
+  height: var(--cv-avatar);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--cv-fill);
+}
+.cv-face:empty { background: none; }
+.cv-face img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.cv-col {
+  min-width: 0;
+  max-width: 74%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.cv-row.is-me .cv-col { align-items: flex-end; }
+
+.cv-bubble {
+  display: block;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: var(--cv-radius);
+  font-size: var(--cv-text-size);
+  line-height: 1.5;
+  white-space: pre-wrap;         /* 消息里的换行由 textContent 带进来，靠它生效 */
+  word-break: break-word;
+  overflow-wrap: anywhere;       /* 一长串没有空格的字符不许把气泡撑出屏幕 */
+}
+
+.cv-row.is-me .cv-bubble {
+  background: var(--cv-me-bg);
+  color: var(--cv-me-fg);
+}
+.cv-row.is-ta .cv-bubble {
+  background: var(--cv-ta-bg);
+  color: var(--cv-ta-fg);
+}
+
+/* 连续效果：只收贴着上/下一条的那个角，另一侧始终是整圆角 */
+.cv-row.is-me:not(.is-first) .cv-bubble { border-top-right-radius: var(--cv-radius-in); }
+.cv-row.is-me:not(.is-last) .cv-bubble { border-bottom-right-radius: var(--cv-radius-in); }
+.cv-row.is-ta:not(.is-first) .cv-bubble { border-top-left-radius: var(--cv-radius-in); }
+.cv-row.is-ta:not(.is-last) .cv-bubble { border-bottom-left-radius: var(--cv-radius-in); }
+
+/* 时间只挂在一组的最后一条下面，一组一个就够 */
+.cv-meta {
+  display: block;
+  margin-top: 5px;
+  padding: 0 4px;
+  font-size: var(--label-size);
+  color: var(--c-hint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 底栏 ===== */
+/* 输入框会跟着内容长高，两侧按钮用 flex-end 贴住底边，不跟着往中间跑 */
+.cv-bar {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  /* 安全区一律用加法，不能用 max() */
+  padding: 8px 12px calc(8px + var(--sab));
+  border-top: 1px solid var(--c-border);
+  background: var(--c-bg);
+}
+
+.cv-tool {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--c-sub);
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+.cv-tool:active {
+  transform: scale(0.88);
+  background: var(--cv-fill);
+  color: var(--c-text);
+}
+
+.cv-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: var(--cv-radius);
+  background: var(--cv-fill);
+}
+
+.cv-input {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  width: 100%;
+  height: 22px;                  /* 一行的高度，长高由 JS 改内联 height */
+  max-height: 110px;             /* 5 行封顶，再多就内部滚 */
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  /* 必须 >= 16px，否则 iOS 一聚焦就把整页放大 */
+  font-size: 16px;
+  line-height: 22px;             /* 与 height / max-height 是一套，改一个要一起改 */
+  color: var(--c-text);
+  resize: none;
+  overflow-y: auto;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cv-input::placeholder { color: var(--c-hint); }
+
+.cv-send {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-text);
+  color: var(--c-bg);
+  transition:
+    transform 0.15s var(--ease),
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+.cv-send:active { transform: scale(0.9); }
+
+/* 输入框是空的：压成灰底最弱字色，点了也不发（拦截在 cvSend() 里，不用 disabled ——
+ * 那会让整颗按钮连按压反馈都没有） */
+.cv-send.is-idle {
+  background: var(--cv-fill);
+  color: var(--c-hint);
+}
+
+/* ===== 多功能面板 ===== */
+/* 弹窗骨架复用 .api-modal（纯色遮罩压暗、卡片缩放淡入），这里改它的落点与卡片内容。
+ * 面板从底栏上方弹出，不居中：它是加号的下级，居中会和底栏断开关系。
+ * bottom 由 cvOpenMore() 按底栏实测高度写成内联样式 —— 底栏跟着输入框长高，CSS 算不出来。
+ * 遮罩也一起停在底栏上沿：底栏不压暗、仍然可点，点输入框就能直接回到打字 */
+.cv-more-modal {
+  align-items: flex-end;
+  padding: calc(24px + var(--sat)) 20px 8px;
+}
+
+/* 底部面板不做 340 收窄：贴着底栏就该占满这一档宽度 */
+.cv-more-modal .api-modal-card {
+  max-width: none;
+  padding: 18px;
+  transform-origin: bottom center;   /* 从底栏那头长出来，不是从卡片正中 */
+}
+
+/* 一行四个，九项排成 4 / 4 / 1，最后一项留在左边不居中 —— 居中会让它看着像另一组 */
+.cv-more-grid {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 8px;
+}
+
+.cv-more-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+}
+
+/* 灰圆是这块面板唯一的底色：卡片是纯白，圆用次级灰才立得住 */
+.cv-more-ico {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c-surface-2);
+  color: var(--c-accent-dark);   /* reicon 内部用 currentColor */
+  transition: transform 0.15s var(--ease), background var(--dur) var(--ease);
+}
+/* 按压反馈落在圆上，不缩整颗按钮 —— 文字跟着缩会糊 */
+.cv-more-item:active .cv-more-ico {
+  transform: scale(0.9);
+  background: var(--press-bg);
+}
+
+/* 「语音通话」是最长的一条，48px 的圆放不下它，文字宽度由格子决定、超长省略 */
+.cv-more-label {
+  max-width: 100%;
+  font-size: var(--row-value-size);
+  line-height: 1.3;
+  color: var(--c-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== 夜间模式 ===== */
+/* 暗底上再压一层浅灰会糊成一片，对方那侧换成比页面底更暗的一档 */
+:root[data-theme="dark"] .cv-page {
+  --cv-me-bg: var(--c-text);
+  --cv-me-fg: var(--c-surface);
+  --cv-ta-bg: var(--c-surface-3);
+  --cv-ta-fg: var(--c-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-page,
+  .cv-page.show {
+    transform: none;
+    transition: visibility 0s;
+  }
+  .cv-act,
+  .cv-tool,
+  .cv-more-ico { transition: background var(--dur) var(--ease); }
+  .cv-send { transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
+  .cv-act:active,
+  .cv-tool:active,
+  .cv-send:active,
+  .cv-more-item:active .cv-more-ico { transform: none; }
+}

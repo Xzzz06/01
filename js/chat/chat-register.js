@@ -70,7 +70,7 @@ function buildChatRegisterPage() {
       crFieldHtml('nickname', '昵称', '聊天里显示的名字') +
 
       '<div class="api-section-label">Credential</div>' +
-      crFieldHtml('chatId', 'Chat ID', 'chat_id_0001') +
+      crFieldHtml('chatId', 'Chat ID', 'cookie_id_01') +
       '<div class="cr-error" hidden>Chat ID 只能使用英文字母、数字和英文半角符号</div>' +
       crKeyFieldHtml('password', 'Password', '设置登录密码') +
 
